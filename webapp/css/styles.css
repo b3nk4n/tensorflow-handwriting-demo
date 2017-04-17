@@ -1,12 +1,13 @@
 body {
-        margin: 0;     
+        margin: 0; 
+        padding-top: 70px;    
 }
  
 #board {
-        margin: 0 auto;
-        width: 500px;  
+        margin: 16px auto;
+        width: 320px;  
 }
  
-#myCanvas {
+#drawboardCanvas {
         border: 3px dotted #000;       
 }
