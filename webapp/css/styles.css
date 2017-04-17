@@ -1,0 +1,12 @@
+body {
+        margin: 0;     
+}
+ 
+#board {
+        margin: 0 auto;
+        width: 500px;  
+}
+ 
+#myCanvas {
+        border: 3px dotted #000;       
+}
