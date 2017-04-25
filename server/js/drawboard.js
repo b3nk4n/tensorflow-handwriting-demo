@@ -55,9 +55,11 @@ $(function() {
 
             $.ajax({
                 type: "POST",
-                url: "http://bsautermeister.de/handwriting/api",
-                dataType: "json",
-                data: JSON.stringify(scaledImg),
+                url: "http://localhost:3000/api/handwriting",
+                crossDomain: true,
+                contentType: 'application/json',
+                dataType: 'json',
+                data: JSON.stringify({ 'img': scaledImg, 'label': currentChar }),
                 success: function(data, status, xhr) {
                     if (status == "success") {
                         restart();
@@ -65,6 +67,9 @@ $(function() {
                         console.log(status);
                         restart();
                     }
+                },
+                error: function(data, status, err) {
+                    alert('Post Failed: ' + status)
                 }
             });
         });
