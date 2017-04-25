@@ -6,8 +6,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
         <!-- jQuery -->
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-            integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g=" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js" 
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
 
         <!-- Latest compiled and minified CSS -->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
@@ -46,6 +46,9 @@
             </nav>
             <div class="row">
                 <div id="board">
+                    <div class="alert alert-info infobox" role="alert">
+                        Please draw the character &quot;<span id="character">A</span>&quot;
+                    </div>
                     <canvas id="drawboardCanvas" width="320px" height="320px">
                             Sorry, your browser doesn't support canvas technology. Seriously, you should upgrade your browser! It's true!
                     </canvas>
@@ -56,7 +59,7 @@
                     <span class="glyphicon glyphicon-ok" aria-hidden="true" />
                 </button>
                 <button id="clear" type="button" class="btn btn-warning btn-sm btn-block">
-                    <span class="glyphicon glyphicon-remove" aria-hidden="true" />
+                    <span class="glyphicon glyphicon-trash" aria-hidden="true" />
                 </button>
             </div>
         <div>

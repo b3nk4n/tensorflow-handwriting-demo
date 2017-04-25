@@ -1,6 +1,8 @@
 $(function() {
     var drawboardCanvas = document.getElementById("drawboardCanvas");
     var curColor = $('#selectColor option:selected').val();
+    var currentChar = null;
+
     if(drawboardCanvas) {
         var isDown = false;
         var ctx = drawboardCanvas.getContext("2d");
@@ -33,7 +35,7 @@ $(function() {
         $(document)
             .bind( "keyup", function(e){
                 if (e.keyCode == 27) { // ESC
-                    ctx.clearRect(0, 0, drawboardCanvas.width, drawboardCanvas.height);
+                    clearCanvas(drawboardCanvas);
                 }
             });
         
@@ -50,25 +52,57 @@ $(function() {
                    scaledImg.push(getPixelGroupValue(imgData, x, y, SCALE, SCALE));
                 }
             }
+
+            $.ajax({
+                type: "POST",
+                url: "http://bsautermeister.de/handwriting/api",
+                dataType: "json",
+                data: JSON.stringify(scaledImg),
+                success: function(data, status, xhr) {
+                    if (status == "success") {
+                        restart();
+                    } else {
+                        console.log(status);
+                        restart();
+                    }
+                }
+            });
         });
 
         $('#clear').click(function(e) {
-            ctx.clearRect(0, 0, drawboardCanvas.width, drawboardCanvas.height);
+            clearCanvas(drawboardCanvas);
         });
+
+        restart();
     }
         
     $('#selectColor').change(function () {
         curColor = $('#selectColor option:selected').val();
     });
+
+    function restart() {
+        currentChar = getRandomChar();
+        $('#character').text(currentChar);
+        clearCanvas(drawboardCanvas);
+    }
 });
 
-function isPixelSet(imgData, x, y) {
-    var index = y * (imgData.width * 4) + 4 * x
+function getRandomChar() {
+    return String.fromCharCode(Math.floor((Math.random() * 25) + 65));
+}
 
-    var red = imgData.data[index]
-    var green = imgData.data[index + 1]
-    var blue = imgData.data[index + 2]
-    var alpha = imgData.data[index + 3]
+function clearCanvas(canvas) {
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function isPixelSet(imgData, x, y) {
+    var index = y * (imgData.width * 4) + 4 * x;
+
+    var red = imgData.data[index];
+    var green = imgData.data[index + 1];
+    var blue = imgData.data[index + 2];
+    var alpha = imgData.data[index + 3];
     return alpha > 0;
 }
 

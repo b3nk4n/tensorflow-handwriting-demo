@@ -11,3 +11,11 @@ body {
 #drawboardCanvas {
         border: 3px dotted #000;       
 }
+
+.infobox {
+        text-align: center;
+}
+
+.infobox #character {
+        font-weight: bold;
+}
