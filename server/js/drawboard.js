@@ -10,7 +10,7 @@ $(function() {
         ctx.lineWidth = 20;
             
         $(drawboardCanvas)
-            .bind( "touchstart mousedown", function(e){
+            .bind( "touchstart mousedown", function(e) {
                 isDown = true;
                 ctx.beginPath();
                 canvasX = e.pageX - drawboardCanvas.offsetLeft;
@@ -18,12 +18,18 @@ $(function() {
                 ctx.moveTo(canvasX, canvasY);
             });
         $(drawboardCanvas)
-            .bind( "touchend mouseup touchleave mouseleave", function(e){
+            .bind( "touchend mouseup touchleave mouseleave", function(e) {
+                if (isDown) {
+                    $('#submit').removeAttr('disabled');
+                    $('#clear').removeAttr('disabled');
+                    isDown = false;
+                }
+
                 isDown = false;
                 ctx.closePath();
             });
         $(drawboardCanvas)
-            .bind( "touchmove mousemove", function(e){
+            .bind( "touchmove mousemove", function(e) {
                 if(isDown != false) {
                     canvasX = e.pageX - drawboardCanvas.offsetLeft;
                     canvasY = e.pageY - drawboardCanvas.offsetTop;
@@ -89,6 +95,8 @@ $(function() {
         currentChar = getRandomChar();
         $('#character').text(currentChar);
         clearCanvas(drawboardCanvas);
+        $('#submit').attr('disabled','disabled');
+        $('#clear').attr('disabled','disabled');
     }
 });
 
