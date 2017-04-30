@@ -64,8 +64,40 @@ def main(_):
                                                  weights_initializer=tf.contrib.layers.xavier_initializer(),
                                                  weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay))
 
+    def conv_net(x, keep_prob):
+        y = tf.reshape(x, [-1, 32, 32, 1])
+
+        y = tf.contrib.layers.conv2d(y, 8, kernel_size=[5, 5], stride=[1, 1], padding='SAME',
+                                     weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                     weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
+                                     activation_fn=tf.nn.relu)
+        y = tf.contrib.layers.max_pool2d(y, kernel_size=[2, 2], padding='SAME')
+        y = tf.contrib.layers.conv2d(y, 8, kernel_size=[3, 3], stride=[1, 1], padding='SAME',
+                                     weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                     weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
+                                     activation_fn=tf.nn.relu)
+        y = tf.contrib.layers.max_pool2d(y, kernel_size=[2, 2], padding='SAME')
+        
+        y = tf.reshape(y, [-1, np.prod(y.get_shape().as_list()[1:])])
+
+        y = tf.contrib.layers.fully_connected(y, 32,
+                                              weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                              weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
+                                              activation_fn=tf.nn.relu)
+        
+        y = tf.nn.dropout(y, keep_prob=keep_prob)
+        return tf.contrib.layers.fully_connected(y , 26,
+                                                 weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                                 weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay))
+
+
     with tf.name_scope('model'):
-        model_y = neural_net(x_ph, dropout_ph)
+        if FLAGS.model == 'neural_net':
+            model_y = neural_net(x_ph, dropout_ph)
+        elif FLAGS.model == 'conv_net':
+            model_y = conv_net(x_ph, dropout_ph)
+        else:
+            raise 'Unknown network model type.'
     
     with tf.name_scope('loss'):
         y_one_hot = tf.one_hot(indices=y_ph, depth=26, on_value=1.0, off_value=0.0, axis=-1)
@@ -152,6 +184,8 @@ if __name__ == "__main__":
                         help='The keep probability of the dropout layer.')
     PARSER.add_argument('--weight_decay', type=float, default=5e-4,
                         help='The lambda koefficient for weight decay regularization.')
+    PARSER.add_argument('--model', type=str, default='neural_net',
+                        help='The network model no use.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
 
