@@ -53,13 +53,16 @@ def main(_):
     def neural_net(x, keep_prob):
         y = tf.contrib.layers.fully_connected(x, 32,
                                               weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                              weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
                                               activation_fn=tf.nn.relu)
         y = tf.contrib.layers.fully_connected(y, 32,
                                               weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                              weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
                                               activation_fn=tf.nn.relu)
         y = tf.nn.dropout(y, keep_prob=keep_prob)
         return tf.contrib.layers.fully_connected(y , 26,
-                                                 weights_initializer=tf.contrib.layers.xavier_initializer())
+                                                 weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                                 weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay))
 
     with tf.name_scope('model'):
         model_y = neural_net(x_ph, dropout_ph)
@@ -68,6 +71,9 @@ def main(_):
         y_one_hot = tf.one_hot(indices=y_ph, depth=26, on_value=1.0, off_value=0.0, axis=-1)
         y_one_hot = tf.reshape(y_one_hot, [-1, 26])
         loss_ = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=model_y, labels=y_one_hot))
+        regularization_list = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+        if len(regularization_list) > 0:
+            loss_ += tf.add_n(regularization_list) 
 
     train_ = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(loss_)
 
@@ -122,7 +128,7 @@ def main(_):
             valid_losses['value'].append(loss)
             valid_accuracy['step'].append(step)
             valid_accuracy['value'].append(accuracy)
-            print('Step {:3d} with valid-loss: {:.5f}'.format(step, loss))
+            print('Step {:3d} with valid-loss: {:.5f}, accuracy: {:.4f}'.format(step, loss, accuracy))
 
         ax[0].plot(train_losses['step'], train_losses['value'], label='Train loss')
         ax[0].plot(valid_losses['step'], valid_losses['value'], label='Valid loss')
@@ -144,6 +150,8 @@ if __name__ == "__main__":
                         help='The data ratio for training.')
     PARSER.add_argument('--dropout', type=float, default=0.5,
                         help='The keep probability of the dropout layer.')
+    PARSER.add_argument('--weight_decay', type=float, default=5e-4,
+                        help='The lambda koefficient for weight decay regularization.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
 
