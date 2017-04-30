@@ -28,30 +28,41 @@ def main(_):
         'data': handwritings,
         'labels': labels
     }
-    print(dataset['data'].shape, dataset['labels'].shape)
     
     # show data distribution of alphabet as histogram 
-    plt.hist(dataset['labels'].reshape(-1), bins=26)
+    plt.hist(dataset['labels'].reshape(-1), bins=range(26))
     plt.show()
 
-    # TODO split data into different sets
+    # split data into different sets
+    split_idx = n_data * FLAGS.train_split
+    trainset = {
+        'size': int(split_idx),
+        'data': dataset['data'][:split_idx],
+        'labels': dataset['labels'][:split_idx]
+    }
+    validset = {
+        'size': int(n_data - split_idx),
+        'data': dataset['data'][split_idx:],
+        'labels': dataset['labels'][split_idx:]
+    }
 
-    print('Training...')
     x_ph = tf.placeholder(tf.float32, shape=[None, 1024])
     y_ph = tf.placeholder(tf.int32, shape=[None, 1])
+    dropout_ph = tf.placeholder(tf.float32)
 
-    def neural_net(x):
+    def neural_net(x, keep_prob):
         y = tf.contrib.layers.fully_connected(x, 32,
                                               weights_initializer=tf.contrib.layers.xavier_initializer(),
                                               activation_fn=tf.nn.relu)
         y = tf.contrib.layers.fully_connected(y, 32,
                                               weights_initializer=tf.contrib.layers.xavier_initializer(),
                                               activation_fn=tf.nn.relu)
+        y = tf.nn.dropout(y, keep_prob=keep_prob)
         return tf.contrib.layers.fully_connected(y , 26,
                                                  weights_initializer=tf.contrib.layers.xavier_initializer())
 
     with tf.name_scope('model'):
-        model_y = neural_net(x_ph)
+        model_y = neural_net(x_ph, dropout_ph)
     
     with tf.name_scope('loss'):
         y_one_hot = tf.one_hot(indices=y_ph, depth=26, on_value=1.0, off_value=0.0, axis=-1)
@@ -64,6 +75,7 @@ def main(_):
         model_out = tf.sigmoid(model_y)
         _, accuracy_ = tf.metrics.accuracy(labels=tf.argmax(y_ph, axis=1), predictions=tf.argmax(model_out, axis=1))
 
+    print('Training...')
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
@@ -76,20 +88,22 @@ def main(_):
         step = 1
         for epoch in range(FLAGS.train_epochs):
             print('Starting epoch {}...'.format(epoch + 1))
-            num_batches = int(n_data / FLAGS.batch_size)
+            num_batches = int(trainset['size'] / FLAGS.batch_size)
             # shuffle data
-            perm = np.random.permutation(n_data)
-            dataset['data'] = dataset['data'][perm]
-            dataset['labels'] = dataset['labels'][perm]
+            perm = np.random.permutation(trainset['size'])
+            trainset['data'] = trainset['data'][perm]
+            trainset['labels'] = trainset['labels'][perm]
 
             loss_sum = 0.0
             for batch_idx in range(num_batches):
                 start_idx = batch_idx * FLAGS.batch_size
                 end_idx = start_idx + FLAGS.batch_size
-                batch_x =  dataset['data'][start_idx:end_idx]
-                batch_y =  dataset['labels'][start_idx:end_idx]
+                batch_x =  trainset['data'][start_idx:end_idx]
+                batch_y =  trainset['labels'][start_idx:end_idx]
 
-                _, loss = sess.run([train_, loss_], feed_dict={x_ph: batch_x, y_ph: batch_y})
+                _, loss = sess.run([train_, loss_], feed_dict={x_ph: batch_x,
+                                                               y_ph: batch_y,
+                                                               dropout_ph: FLAGS.dropout})
                 loss_sum += loss
 
                 if step % 5 == 0:
@@ -101,7 +115,9 @@ def main(_):
 
                 step += 1
 
-            loss, accuracy = sess.run([loss_, accuracy_], feed_dict={x_ph: dataset['data'], y_ph: dataset['labels']})
+            loss, accuracy = sess.run([loss_, accuracy_], feed_dict={x_ph: validset['data'],
+                                                                     y_ph: validset['labels'],
+                                                                     dropout_ph: 1.0})
             valid_losses['step'].append(step)
             valid_losses['value'].append(loss)
             valid_accuracy['step'].append(step)
@@ -120,10 +136,14 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--batch_size', type=int, default=10,
                         help='The batch size.')
-    PARSER.add_argument('--learning_rate', type=float, default=0.001,
+    PARSER.add_argument('--learning_rate', type=float, default=0.0005,
                         help='The initial learning rate.')
     PARSER.add_argument('--train_epochs', type=int, default=10,
                         help='The number of training epochs.')
+    PARSER.add_argument('--train_split', type=float, default=0.8,
+                        help='The data ratio for training.')
+    PARSER.add_argument('--dropout', type=float, default=0.5,
+                        help='The keep probability of the dropout layer.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
 
