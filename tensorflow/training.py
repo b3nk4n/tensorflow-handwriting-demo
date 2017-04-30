@@ -29,22 +29,24 @@ def main(_):
         'labels': labels
     }
     
-    # show data distribution of alphabet as histogram 
-    plt.hist(dataset['labels'].reshape(-1), bins=range(26))
-    plt.show()
-
     # split data into different sets
-    split_idx = n_data * FLAGS.train_split
+    split_idx = int(n_data * FLAGS.train_split)
     trainset = {
-        'size': int(split_idx),
+        'size': split_idx,
         'data': dataset['data'][:split_idx],
         'labels': dataset['labels'][:split_idx]
     }
     validset = {
-        'size': int(n_data - split_idx),
+        'size': n_data - split_idx,
         'data': dataset['data'][split_idx:],
         'labels': dataset['labels'][split_idx:]
     }
+
+    print('Training set: {:5d} samples, Vaidation set: {:5d} samples'.format(trainset['size'], validset['size']))
+
+    # show data distribution of alphabet as histogram 
+    plt.hist(dataset['labels'].reshape(-1), bins=range(26))
+    plt.show()
 
     x_ph = tf.placeholder(tf.float32, shape=[None, 1024])
     y_ph = tf.placeholder(tf.int32, shape=[None, 1])
@@ -123,6 +125,8 @@ def main(_):
         valid_accuracy= {'step': [], 'value': []}
 
         step = 1
+        loss_sum = 0.0
+        loss_n = 0
         for epoch in range(FLAGS.train_epochs):
             print('Starting epoch {}...'.format(epoch + 1))
             sess.run(tf.local_variables_initializer())
@@ -132,7 +136,6 @@ def main(_):
             trainset['data'] = trainset['data'][perm]
             trainset['labels'] = trainset['labels'][perm]
 
-            loss_sum = 0.0
             for batch_idx in range(num_batches):
                 start_idx = batch_idx * FLAGS.batch_size
                 end_idx = start_idx + FLAGS.batch_size
@@ -143,13 +146,15 @@ def main(_):
                                                                y_ph: batch_y,
                                                                dropout_ph: FLAGS.dropout})
                 loss_sum += loss
+                loss_n += 1
 
                 if step % 5 == 0:
-                    loss_avg = loss_sum / 5.0
+                    loss_avg = loss_sum / loss_n
                     train_losses['step'].append(step)
                     train_losses['value'].append(loss_avg)
                     print('Step {:3d} with train-loss: {:.5f}'.format(step, loss_avg))
                     loss_sum = 0.0
+                    loss_n = 0
 
                 step += 1
 
