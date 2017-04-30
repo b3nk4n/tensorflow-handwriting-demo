@@ -84,7 +84,6 @@ def main(_):
     print('Training...')
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
         
         f, ax = plt.subplots(2, 1)
         train_losses = {'step': [], 'value': []}
@@ -94,6 +93,7 @@ def main(_):
         step = 1
         for epoch in range(FLAGS.train_epochs):
             print('Starting epoch {}...'.format(epoch + 1))
+            sess.run(tf.local_variables_initializer())
             num_batches = int(trainset['size'] / FLAGS.batch_size)
             # shuffle data
             perm = np.random.permutation(trainset['size'])
@@ -113,7 +113,7 @@ def main(_):
                 loss_sum += loss
 
                 if step % 5 == 0:
-                    loss_avg = loss_sum / num_batches
+                    loss_avg = loss_sum / 5.0
                     train_losses['step'].append(step)
                     train_losses['value'].append(loss_avg)
                     print('Step {:3d} with train-loss: {:.5f}'.format(step, loss_avg))
