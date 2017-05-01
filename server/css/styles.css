@@ -9,7 +9,8 @@ body {
 }
  
 #drawboardCanvas {
-        box-shadow: 0px 0px 12px 2px #999999;        
+        box-shadow: 0px 0px 12px 2px #999999;
+        margin: 4px 0 16px 0;      
 }
 
 .infobox {
@@ -24,4 +25,8 @@ body {
 .signature {
         font-style: italic;
         font-size: 9pt;
+}
+
+.emph-font {
+        font-size: 18pt;
 }

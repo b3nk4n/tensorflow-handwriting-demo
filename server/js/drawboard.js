@@ -35,8 +35,7 @@ $(function() {
         $(drawboardCanvas)
             .bind( "touchend mouseup touchleave mouseleave", function(e) {
                 if (isDown) {
-                    $('#submit').removeAttr('disabled');
-                    $('#clear').removeAttr('disabled');
+                    setButtonState(true);
                     isDown = false;
                 }
 
@@ -104,10 +103,19 @@ $(function() {
         currentChar = nextChar
         $('#character').text(currentChar);
         clearCanvas(drawboardCanvas);
+        setButtonState(false);
+    }
+});
+
+function setButtonState(enabled) {
+    if (enabled) {
+        $('#submit').removeAttr('disabled');
+        $('#clear').removeAttr('disabled');
+    } else {
         $('#submit').attr('disabled','disabled');
         $('#clear').attr('disabled','disabled');
     }
-});
+}
 
 function getRandomChar() {
     return String.fromCharCode(Math.floor((Math.random() * 26) + 65));
@@ -116,6 +124,7 @@ function getRandomChar() {
 function clearCanvas(canvas) {
     var ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setButtonState(false);
 }
 
 function isPixelSet(imgData, x, y) {
