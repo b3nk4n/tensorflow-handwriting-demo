@@ -1,4 +1,5 @@
 import sys
+import time
 import argparse
 import json
 import urllib
@@ -8,17 +9,30 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
+
+def get_num_trainable_params():
+    total_parameters = 0
+    for variable in tf.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        variable_parametes = 1
+        for dim in shape:
+            variable_parametes *= dim.value
+        total_parameters += variable_parametes
+    return total_parameters
+
+
 def main(_):
     """Executed only if run as a script."""
 
-    print('Fetiching data...')
+    print('\nFetiching data...')
     url = 'http://localhost:3000/api/handwriting'
     response = urllib.urlopen(url)
     handwriting_list = json.loads(response.read())
     n_data = len(handwriting_list)
     print(n_data)
 
-    print('Prepricessing data...')
+    print('\nPrepricessing data...')
     handwritings = np.zeros((n_data, 1024), dtype=np.float32)
     labels = np.zeros((n_data, 1), dtype=np.float32)
     for i, handwriting in enumerate(handwriting_list):
@@ -88,7 +102,7 @@ def main(_):
                                               activation_fn=tf.nn.relu)
         
         y = tf.nn.dropout(y, keep_prob=keep_prob)
-        return tf.contrib.layers.fully_connected(y , 26,
+        return tf.contrib.layers.fully_connected(y, 26,
                                                  weights_initializer=tf.contrib.layers.xavier_initializer(),
                                                  weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay))
 
@@ -115,10 +129,13 @@ def main(_):
         model_out = tf.sigmoid(model_y)
         _, accuracy_ = tf.metrics.accuracy(labels=tf.argmax(y_ph, axis=1), predictions=tf.argmax(model_out, axis=1))
 
-    print('Training...')
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         
+        print('\nModel with {} trainable parameters.'.format(get_num_trainable_params()))
+        time.sleep(3)
+        print('\nTraining...')
+
         f, ax = plt.subplots(2, 1)
         train_losses = {'step': [], 'value': []}
         valid_losses = {'step': [], 'value': []}
@@ -128,7 +145,7 @@ def main(_):
         loss_sum = 0.0
         loss_n = 0
         for epoch in range(FLAGS.train_epochs):
-            print('Starting epoch {}...'.format(epoch + 1))
+            print('\nStarting epoch {}...'.format(epoch + 1))
             sess.run(tf.local_variables_initializer())
             num_batches = int(trainset['size'] / FLAGS.batch_size)
             # shuffle data
@@ -152,7 +169,7 @@ def main(_):
                     loss_avg = loss_sum / loss_n
                     train_losses['step'].append(step)
                     train_losses['value'].append(loss_avg)
-                    print('Step {:3d} with train-loss: {:.5f}'.format(step, loss_avg))
+                    print('Step {:3d} with loss: {:.5f}'.format(step, loss_avg))
                     loss_sum = 0.0
                     loss_n = 0
 
@@ -165,7 +182,7 @@ def main(_):
             valid_losses['value'].append(loss)
             valid_accuracy['step'].append(step)
             valid_accuracy['value'].append(accuracy)
-            print('Step {:3d} with valid-loss: {:.5f}, accuracy: {:.4f}'.format(step, loss, accuracy))
+            print('VALIDATION > Step {:3d} with loss: {:.5f}, accuracy: {:.4f}'.format(step, loss, accuracy))
 
         ax[0].plot(train_losses['step'], train_losses['value'], label='Train loss')
         ax[0].plot(valid_losses['step'], valid_losses['value'], label='Valid loss')
