@@ -32,7 +32,7 @@ class CanvasDialog:
         
     def _render_seperators(self):
         for i in range(1, self.num_letters):
-            x = i * (self.scaled_width + 1)
+            x = i*self.scaled_width + (i-1)*1
             self.canvas.create_line(x, 0,
                                     x, self.scaled_height,
                                     fill="grey", dash=(4,4)) 
@@ -56,15 +56,20 @@ class CanvasDialog:
         dataList = []
         for i in range(self.num_letters):
             scaledData = []
-            for y in range(self.scaled_height / self.scale):
+            isEmptyLetter = True
+            for y in range(0, self.scaled_width, self.scale):
                 for x in range(i*(self.scaled_width+1),
                                i*(self.scaled_width+1)+self.scaled_width,
                                self.scale):
-                    scaledData.append(self._get_pixel_group(x*self.scale,
-                                                            y*self.scale,
-                                                            self.scale,
-                                                            self.scale));
-            dataList.append(scaledData)
+                    group = self._get_pixel_group(x,
+                                                  y,
+                                                  self.scale,
+                                                  self.scale)                              
+                    scaledData.append(group)
+                    if group > 0:
+                        isEmptyLetter = False
+            if not isEmptyLetter: 
+                dataList.append(scaledData)
         return dataList
 
     def _mouse_left(self, event):
