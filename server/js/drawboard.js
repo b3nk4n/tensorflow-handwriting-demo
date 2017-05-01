@@ -7,7 +7,11 @@ $(function() {
         var isDown = false;
         var ctx = drawboardCanvas.getContext("2d");
         var canvasX, canvasY;
-        ctx.lineWidth = 20;
+        //'pencil' details
+        ctx.lineWidth = 20.0;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = curColor;
             
         $(drawboardCanvas)
             .bind( "touchstart mousedown", function(e) {
@@ -16,6 +20,17 @@ $(function() {
                 canvasX = e.pageX - drawboardCanvas.offsetLeft;
                 canvasY = e.pageY - drawboardCanvas.offsetTop;
                 ctx.moveTo(canvasX, canvasY);
+                ctx.lineTo(canvasX, canvasY);
+                ctx.stroke();
+            });
+        $(drawboardCanvas)
+            .bind( "touchmove mousemove", function(e) {
+                if(isDown != false) {
+                    canvasX = e.pageX - drawboardCanvas.offsetLeft;
+                    canvasY = e.pageY - drawboardCanvas.offsetTop;
+                    ctx.lineTo(canvasX, canvasY);
+                    ctx.stroke();
+                }
             });
         $(drawboardCanvas)
             .bind( "touchend mouseup touchleave mouseleave", function(e) {
@@ -27,16 +42,6 @@ $(function() {
 
                 isDown = false;
                 ctx.closePath();
-            });
-        $(drawboardCanvas)
-            .bind( "touchmove mousemove", function(e) {
-                if(isDown != false) {
-                    canvasX = e.pageX - drawboardCanvas.offsetLeft;
-                    canvasY = e.pageY - drawboardCanvas.offsetTop;
-                    ctx.lineTo(canvasX, canvasY);
-                    ctx.strokeStyle = curColor;
-                    ctx.stroke();
-                }
             });
         $(document)
             .bind( "keyup", function(e){
