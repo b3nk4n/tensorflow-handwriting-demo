@@ -1,5 +1,8 @@
+import numpy as np
 import utils.ui
 
-dialog = utils.ui.CanvasDialog("Read Handwriting...", 32, 32)
+dialog = utils.ui.CanvasDialog("Read Handwriting...", 32, 32,
+                               scale=5, num_letters=6)
 data = dialog.show()
-print(data)
+array = np.asarray(data)
+print(array.shape)

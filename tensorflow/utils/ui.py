@@ -3,12 +3,13 @@ from Tkinter import *
 
 class CanvasDialog:
     
-    def __init__(self, title, width, height, thickness=20, scale=10):
+    def __init__(self, title, width, height, scale=10, num_letters=1):
+        self.resultsData = []
         self.title = title
-        self.width = width
-        self.height = height
-        self.thickness = thickness
+        self.scaled_width = width*scale
+        self.scaled_height = height*scale
         self.scale = scale
+        self.num_letters = num_letters
         
         self.root = Tk()
         self.root.title(title)
@@ -16,18 +17,25 @@ class CanvasDialog:
         self.root.protocol("WM_DELETE_WINDOW", self._closing)
 
         self.canvas = Canvas(self.root, bg="white",
-                             width=width*scale, height=height*scale)
+                             width=self.scaled_width*num_letters+(self.num_letters-1),
+                             height=self.scaled_height)
         self.canvas.configure(cursor="crosshair")
         self.canvas.pack()
         self.canvas.bind("<Button-1>", self._mouse_left)
         self.canvas.bind("<Button-3>", self._mouse_right)
         self.canvas.bind("<B1-Motion>", self._mouse_move)
-        self.resultsData = []
-        
-
+        self._render_seperators()
+      
     def show(self):
-            self.root.mainloop()
-            return self.resultsData
+        self.root.mainloop()
+        return self.resultsData
+        
+    def _render_seperators(self):
+        for i in range(1, self.num_letters):
+            x = i * (self.scaled_width + 1)
+            self.canvas.create_line(x, 0,
+                                    x, self.scaled_height,
+                                    fill="grey", dash=(4,4)) 
 
     def _get_pixel(self, x, y):
         ids = self.canvas.find_overlapping(x, y, x, y)
@@ -45,33 +53,39 @@ class CanvasDialog:
         return pixCounter / total
         
     def _get_data(self):
-        counter = 0
-        scaledImg = []
-        for y in range(self.height):
-            for x in range(self.width):
-                scaledImg.append(self._get_pixel_group(x*self.scale,
-                                                       y*self.scale,
-                                                       self.scale,
-                                                       self.scale));
-        return scaledImg
+        dataList = []
+        for i in range(self.num_letters):
+            scaledData = []
+            for y in range(self.scaled_height / self.scale):
+                for x in range(i*(self.scaled_width+1),
+                               i*(self.scaled_width+1)+self.scaled_width,
+                               self.scale):
+                    scaledData.append(self._get_pixel_group(x*self.scale,
+                                                            y*self.scale,
+                                                            self.scale,
+                                                            self.scale));
+            dataList.append(scaledData)
+        return dataList
 
     def _mouse_left(self, event):
-        print(self._get_pixel(event.x, event.y))
-        self.canvas.create_oval(event.x - self.thickness / 2,
-                                event.y - self.thickness / 2,
-                                event.x + self.thickness / 2,
-                                event.y + self.thickness / 2,
+        thickness = self.scale * 2
+        self.canvas.create_oval(event.x - thickness / 2,
+                                event.y - thickness / 2,
+                                event.x + thickness / 2,
+                                event.y + thickness / 2,
                                 fill="black")
 
     def _mouse_move(self ,event):
-        self.canvas.create_oval(event.x - self.thickness / 2,
-                                event.y - self.thickness / 2,
-                                event.x + self.thickness / 2,
-                                event.y + self.thickness / 2,
+        thickness = self.scale * 2
+        self.canvas.create_oval(event.x - thickness / 2,
+                                event.y - thickness / 2,
+                                event.x + thickness / 2,
+                                event.y + thickness / 2,
                                 fill="black")	
 
     def _mouse_right(self, event):
         self.canvas.delete("all")
+        self._render_seperators()
         
     def _closing(self):
         self.resultsData = self._get_data()
