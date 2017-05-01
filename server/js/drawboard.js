@@ -53,7 +53,6 @@ $(function() {
             var imgData = ctx.getImageData(0, 0, drawboardCanvas.width, drawboardCanvas.height)
 
             var SCALE = 10;
-            var counter = 0;
             var scaledImg = [];
             for (var y = 0; y < imgData.height; y += SCALE)
             {
