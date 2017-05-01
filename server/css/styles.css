@@ -18,4 +18,10 @@ body {
 
 .infobox #character {
         font-weight: bold;
+        font-size: 16pt;
+}
+
+.signature {
+        font-style: italic;
+        font-size: 9pt;
 }

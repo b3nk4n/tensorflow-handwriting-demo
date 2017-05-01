@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <title>Handwriting Demo for TensorFlow</title>
+        <title>Handwriting Demo</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
         <!-- jQuery -->
@@ -33,7 +33,7 @@
                         <a class="navbar-brand" href="#">
                             <img alt="Brand" src="assets/pencil-120.png" width="24">
                         </a>
-                        <a class="navbar-brand" href="#">Handwriting Demo for TensorFlow</a>
+                        <a class="navbar-brand" href="#">Handwriting Data Generation</a>
                     </div>
 
                     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -47,7 +47,7 @@
             <div class="row">
                 <div id="board">
                     <div class="alert alert-info infobox" role="alert">
-                        Please draw the character &quot;<span id="character">A</span>&quot;
+                        Please draw the character: <br/><span id="character">A</span>
                     </div>
                     <canvas id="drawboardCanvas" width="320px" height="320px">
                             Sorry, your browser doesn't support canvas technology. Seriously, you should upgrade your browser! It's true!
@@ -73,11 +73,11 @@
                     </div>
                     <div class="modal-body">
                         <p>
-                            Web-App to generate handwriting data to train a neual network to classify handwritten characters.
+                            Web-App to generate data for neural network training to classify handwritten characters.
                         </p>
                     </div>
                     <div class="modal-footer">
-                        by Benjamin Sautermeister
+                        <span class="signature">by Benjamin Sautermeister</span>
                     </div>
                 </div>
             </div>

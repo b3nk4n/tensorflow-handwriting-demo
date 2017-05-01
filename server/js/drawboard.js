@@ -92,7 +92,11 @@ $(function() {
     });
 
     function restart() {
-        currentChar = getRandomChar();
+        var nextChar;
+        do {
+            nextChar = getRandomChar();
+        } while (currentChar == nextChar);
+        currentChar = nextChar
         $('#character').text(currentChar);
         clearCanvas(drawboardCanvas);
         $('#submit').attr('disabled','disabled');
@@ -101,7 +105,7 @@ $(function() {
 });
 
 function getRandomChar() {
-    return String.fromCharCode(Math.floor((Math.random() * 25) + 65));
+    return String.fromCharCode(Math.floor((Math.random() * 26) + 65));
 }
 
 function clearCanvas(canvas) {
