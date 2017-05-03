@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import argparse
@@ -10,6 +11,7 @@ import numpy as np
 import tensorflow as tf
 
 import utils.tensor
+import models
 
 
 def main(_):
@@ -56,52 +58,13 @@ def main(_):
     y_ph = tf.placeholder(tf.int32, shape=[None, 1])
     dropout_ph = tf.placeholder(tf.float32)
 
-    def neural_net(x, keep_prob):
-        y = tf.contrib.layers.fully_connected(x, 32,
-                                              weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                              weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
-                                              activation_fn=tf.nn.relu)
-        y = tf.contrib.layers.fully_connected(y, 32,
-                                              weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                              weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
-                                              activation_fn=tf.nn.relu)
-        y = tf.nn.dropout(y, keep_prob=keep_prob)
-        return tf.contrib.layers.fully_connected(y , 26,
-                                                 weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                                 weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay))
-
-    def conv_net(x, keep_prob):
-        y = tf.reshape(x, [-1, 32, 32, 1])
-
-        y = tf.contrib.layers.conv2d(y, 8, kernel_size=[5, 5], stride=[1, 1], padding='SAME',
-                                     weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                     weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
-                                     activation_fn=tf.nn.relu)
-        y = tf.contrib.layers.max_pool2d(y, kernel_size=[2, 2], padding='SAME')
-        y = tf.contrib.layers.conv2d(y, 8, kernel_size=[3, 3], stride=[1, 1], padding='SAME',
-                                     weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                     weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
-                                     activation_fn=tf.nn.relu)
-        y = tf.contrib.layers.max_pool2d(y, kernel_size=[2, 2], padding='SAME')
-        
-        y = tf.reshape(y, [-1, np.prod(y.get_shape().as_list()[1:])])
-
-        y = tf.contrib.layers.fully_connected(y, 32,
-                                              weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                              weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay),
-                                              activation_fn=tf.nn.relu)
-        
-        y = tf.nn.dropout(y, keep_prob=keep_prob)
-        return tf.contrib.layers.fully_connected(y, 26,
-                                                 weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                                 weights_regularizer=tf.contrib.layers.l2_regularizer(FLAGS.weight_decay))
-
-
     with tf.name_scope('model'):
         if FLAGS.model == 'neural_net':
-            model_y = neural_net(x_ph, dropout_ph)
+            model_y = models.neural_net(x_ph, [32, 32, 26],
+                                        dropout_ph, FLAGS.weight_decay)
         elif FLAGS.model == 'conv_net':
-            model_y = conv_net(x_ph, dropout_ph)
+            model_y = models.conv_net(x_ph, [(8, 5), (8, 3)], [32, 26],
+                                      dropout_ph, FLAGS.weight_decay)
         else:
             raise 'Unknown network model type.'
     
@@ -118,6 +81,8 @@ def main(_):
     with tf.name_scope('metrics'):
         model_out = tf.sigmoid(model_y)
         _, accuracy_ = tf.metrics.accuracy(labels=tf.argmax(y_ph, axis=1), predictions=tf.argmax(model_out, axis=1))
+
+    saver = tf.train.Saver()
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -174,6 +139,14 @@ def main(_):
             valid_accuracy['value'].append(accuracy)
             print('VALIDATION > Step {:3d} with loss: {:.5f}, accuracy: {:.4f}'.format(step, loss, accuracy))
 
+        if FLAGS.save_checkpoint:
+            checkpoint_dir = "checkpoint"
+            if not os.path.exists(checkpoint_dir):
+                os.makedirs(checkpoint_dir)
+            # save checkpoint
+            save_path = saver.save(sess, os.path.join(checkpoint_dir, "model.ckpt"))
+            print("Model saved in file: {}".format(save_path))
+
         ax[0].plot(train_losses['step'], train_losses['value'], label='Train loss')
         ax[0].plot(valid_losses['step'], valid_losses['value'], label='Valid loss')
         ax[0].legend(loc='upper right')
@@ -198,6 +171,8 @@ if __name__ == "__main__":
                         help='The lambda koefficient for weight decay regularization.')
     PARSER.add_argument('--model', type=str, default='neural_net',
                         help='The network model no use.')
+    PARSER.add_argument('--save_checkpoint', type=bool, default=False,
+                        help='Whether we save a checkpoint or not.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
 
