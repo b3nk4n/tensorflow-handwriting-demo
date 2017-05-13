@@ -73,7 +73,7 @@ class CanvasDialog:
         return dataList
 
     def _mouse_left(self, event):
-        thickness = self.scale * 2
+        thickness = self.scale * 4
         self.canvas.create_oval(event.x - thickness / 2,
                                 event.y - thickness / 2,
                                 event.x + thickness / 2,
@@ -81,7 +81,7 @@ class CanvasDialog:
                                 fill="black")
 
     def _mouse_move(self ,event):
-        thickness = self.scale * 2
+        thickness = self.scale * 4
         self.canvas.create_oval(event.x - thickness / 2,
                                 event.y - thickness / 2,
                                 event.x + thickness / 2,

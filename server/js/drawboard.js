@@ -8,7 +8,7 @@ $(function() {
         var ctx = drawboardCanvas.getContext("2d");
         var canvasX, canvasY;
         //'pencil' details
-        ctx.lineWidth = 20.0;
+        ctx.lineWidth = 40.0;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.strokeStyle = curColor;

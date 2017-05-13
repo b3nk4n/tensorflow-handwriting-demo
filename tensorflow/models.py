@@ -18,7 +18,7 @@ def conv_net(x, convs, fullys, keep_prob, weight_decay):
     y = tf.reshape(x, [-1, 32, 32, 1])
     for conv in convs:
         y = tf.contrib.layers.conv2d(y, conv[0], kernel_size=[conv[1], conv[1]], stride=[1, 1], padding='SAME',
-                                        weights_initializer=tf.contrib.layers.xavier_initializer(),
+                                        weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(),
                                         weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
                                         activation_fn=tf.nn.relu)
         y = tf.contrib.layers.max_pool2d(y, kernel_size=[2, 2], padding='SAME')

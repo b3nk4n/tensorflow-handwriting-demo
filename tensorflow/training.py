@@ -9,9 +9,13 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.core.protobuf import saver_pb2
 
+import utils.ui
 import utils.tensor
 import models
+
+# TODO: make dataset exchangeable with tensorflow's MNIST to check the code/data for errors
 
 
 def main(_):
@@ -54,23 +58,30 @@ def main(_):
     plt.hist(dataset['labels'].reshape(-1), bins=range(26))
     plt.show()
 
-    x_ph = tf.placeholder(tf.float32, shape=[None, 1024])
-    y_ph = tf.placeholder(tf.int32, shape=[None, 1])
-    dropout_ph = tf.placeholder(tf.float32)
+    with tf.name_scope('placeholders'):
+        x_ph = tf.placeholder(tf.float32, shape=[None, 1024])
+        y_ph = tf.placeholder(tf.int32, shape=[None, 1])
+        dropout_ph = tf.placeholder(tf.float32)
+        tf.add_to_collection("x_ph", x_ph)
+        tf.add_to_collection("y_ph", y_ph)
+        tf.add_to_collection("dropout_ph", dropout_ph)
 
     with tf.name_scope('model'):
         if FLAGS.model == 'neural_net':
-            model_y = models.neural_net(x_ph, [32, 32, 26],
+            model_y = models.neural_net(x_ph, [32, 26],
                                         dropout_ph, FLAGS.weight_decay)
         elif FLAGS.model == 'conv_net':
             model_y = models.conv_net(x_ph, [(8, 5), (8, 3)], [32, 26],
                                       dropout_ph, FLAGS.weight_decay)
         else:
             raise 'Unknown network model type.'
+            
+    tf.add_to_collection("model_y", tf.sigmoid(model_y))
     
     with tf.name_scope('loss'):
         y_one_hot = tf.one_hot(indices=y_ph, depth=26, on_value=1.0, off_value=0.0, axis=-1)
         y_one_hot = tf.reshape(y_one_hot, [-1, 26])
+        print('loss-shapes', y_one_hot.get_shape().as_list(), model_y.get_shape().as_list())
         loss_ = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=model_y, labels=y_one_hot))
         regularization_list = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         if len(regularization_list) > 0:
@@ -80,9 +91,15 @@ def main(_):
 
     with tf.name_scope('metrics'):
         model_out = tf.sigmoid(model_y)
-        _, accuracy_ = tf.metrics.accuracy(labels=tf.argmax(y_ph, axis=1), predictions=tf.argmax(model_out, axis=1))
+        print('model-out-shape', model_out.get_shape().as_list())
+        model_out_argmax = tf.argmax(model_out, axis=1)
+        print('model-out-argmax-shape', model_out_argmax.get_shape().as_list())
+        print('y_ph shape', y_ph.get_shape().as_list())
+        reshaped_y_ph = tf.reshape(y_ph, [-1])
+        print('reshaped y_ph shape', reshaped_y_ph.get_shape().as_list())
+        _, accuracy_ = tf.metrics.accuracy(labels=reshaped_y_ph, predictions=tf.argmax(model_out, axis=1))
 
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(write_version=saver_pb2.SaverDef.V1)
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -104,6 +121,8 @@ def main(_):
             sess.run(tf.local_variables_initializer())
             num_batches = int(trainset['size'] / FLAGS.batch_size)
             # shuffle data
+            #if epoch == -1:
+            # TODO why does shuffle make the net not to learn anything ??!??!?!
             perm = np.random.permutation(trainset['size'])
             trainset['data'] = trainset['data'][perm]
             trainset['labels'] = trainset['labels'][perm]
@@ -130,8 +149,8 @@ def main(_):
 
                 step += 1
 
-            loss, accuracy = sess.run([loss_, accuracy_], feed_dict={x_ph: validset['data'],
-                                                                     y_ph: validset['labels'],
+            loss, accuracy, argmax, y = sess.run([loss_, accuracy_, model_out_argmax, y_ph], feed_dict={x_ph: trainset['data'],
+                                                                     y_ph: trainset['labels'],
                                                                      dropout_ph: 1.0})
             valid_losses['step'].append(step)
             valid_losses['value'].append(loss)
@@ -153,15 +172,35 @@ def main(_):
         ax[1].plot(valid_accuracy['step'], valid_accuracy['value'], label='Valid accuracy')
         ax[1].legend(loc='lower right')
         plt.show()
+        
+        """dialog = utils.ui.CanvasDialog("Read Handwriting...", 32, 32,
+                                       scale=5, num_letters=6)
+        data = dialog.show()
+        writing = np.asarray(data)
+        
+        print(writing.shape)
+        prediction = sess.run(model_out, feed_dict={x_ph: writing, dropout_ph: 1.0})
+        print(prediction.shape)
+        print(prediction)
+        print(np.argmax(prediction, axis=1))
+        
+        
+        single_data = dataset['data'][:2]
+        single_label = dataset['labels'][:2]
+        
+        prediction, oh = sess.run([model_out, y_one_hot], feed_dict={x_ph: single_data, y_ph: single_label, dropout_ph: 1.0})
+        print('oh', oh.shape, oh)
+        print(prediction)
+        print(single_label)"""
 
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--batch_size', type=int, default=10,
+    PARSER.add_argument('--batch_size', type=int, default=100,
                         help='The batch size.')
     PARSER.add_argument('--learning_rate', type=float, default=0.0005,
                         help='The initial learning rate.')
-    PARSER.add_argument('--train_epochs', type=int, default=10,
+    PARSER.add_argument('--train_epochs', type=int, default=25,
                         help='The number of training epochs.')
     PARSER.add_argument('--train_split', type=float, default=0.8,
                         help='The data ratio for training.')
