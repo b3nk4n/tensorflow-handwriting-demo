@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import sys
 import argparse
 
@@ -28,7 +30,12 @@ def main(_):
                 break
             
             prediction = sess.run(model_y, feed_dict={x_ph: writing, dropout_ph: 1.0})
-            print(np.argmax(prediction, axis=1))
+            print(prediction)
+            print(prediction.shape)
+            for i in range(prediction.shape[0]):
+                alpha_pos = np.argmax(prediction[i])
+                print(chr(ord('A') + alpha_pos), end='')
+            print()
 
 
 if __name__ == "__main__":
