@@ -14,52 +14,21 @@ from tensorflow.core.protobuf import saver_pb2
 import utils.ui
 import utils.tensor
 import models
+import datasets
 
-# TODO: make dataset exchangeable with tensorflow's MNIST to check the code/data for errors
+FLAGS = None
 
 
 def main(_):
     """Executed only if run as a script."""
 
-    print('\nFetiching data...')
-    url = 'http://localhost:3000/api/handwriting'
-    response = urllib.urlopen(url)
-    handwriting_list = json.loads(response.read())
-    n_data = len(handwriting_list)
-    print(n_data)
-
-    print('\nPrepricessing data...')
-    handwritings = np.zeros((n_data, 1024), dtype=np.float32)
-    labels = np.zeros((n_data, 1), dtype=np.float32)
-    for i, handwriting in enumerate(handwriting_list):
-        handwritings[i, :] = np.asarray(handwriting['img'], dtype=np.float32)
-        labels[i, 0] = ord(handwriting['label']) - ord('A')
-    dataset = {
-        'data': handwritings,
-        'labels': labels
-    }
+    dataset = datasets.HandwritingDataset()
+    #dataset = datasets.MnistDataset()
     
-    # split data into different sets
-    split_idx = int(n_data * FLAGS.train_split)
-    trainset = {
-        'size': split_idx,
-        'data': dataset['data'][:split_idx],
-        'labels': dataset['labels'][:split_idx]
-    }
-    validset = {
-        'size': n_data - split_idx,
-        'data': dataset['data'][split_idx:],
-        'labels': dataset['labels'][split_idx:]
-    }
-
-    print('Training set: {:5d} samples, Vaidation set: {:5d} samples'.format(trainset['size'], validset['size']))
-
-    # show data distribution of alphabet as histogram 
-    plt.hist(dataset['labels'].reshape(-1), bins=range(26))
-    plt.show()
+    dataset.show_info()
 
     with tf.name_scope('placeholders'):
-        x_ph = tf.placeholder(tf.float32, shape=[None, 1024])
+        x_ph = tf.placeholder(tf.float32, shape=[None, np.prod(dataset.data_shape)])
         y_ph = tf.placeholder(tf.int32, shape=[None, 1])
         dropout_ph = tf.placeholder(tf.float32)
         tf.add_to_collection("x_ph", x_ph)
@@ -68,21 +37,20 @@ def main(_):
 
     with tf.name_scope('model'):
         if FLAGS.model == 'neural_net':
-            model_y = models.neural_net(x_ph, [32, 26],
+            model_y = models.neural_net(x_ph, [32, dataset.num_classes],
                                         dropout_ph, FLAGS.weight_decay)
         elif FLAGS.model == 'conv_net':
-            model_y = models.conv_net(x_ph, [(8, 5), (8, 3)], [32, 26],
+            model_y = models.conv_net(x_ph, [(8, 5), (8, 3)], [32, dataset.num_classes],
                                       dropout_ph, FLAGS.weight_decay)
         else:
             raise 'Unknown network model type.'
             
-    tf.add_to_collection("model_y", tf.sigmoid(model_y))
+    tf.add_to_collection("model_y", tf.nn.softmax(model_y))
     
     with tf.name_scope('loss'):
-        y_one_hot = tf.one_hot(indices=y_ph, depth=26, on_value=1.0, off_value=0.0, axis=-1)
-        y_one_hot = tf.reshape(y_one_hot, [-1, 26])
-        print('loss-shapes', y_one_hot.get_shape().as_list(), model_y.get_shape().as_list())
-        loss_ = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=model_y, labels=y_one_hot))
+        y_one_hot = tf.one_hot(indices=y_ph, depth=dataset.num_classes, on_value=1.0, off_value=0.0, axis=-1)
+        y_one_hot = tf.reshape(y_one_hot, [-1, dataset.num_classes])
+        loss_ = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model_y, labels=y_one_hot))
         regularization_list = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         if len(regularization_list) > 0:
             loss_ += tf.add_n(regularization_list) 
@@ -90,13 +58,9 @@ def main(_):
     train_ = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(loss_)
 
     with tf.name_scope('metrics'):
-        model_out = tf.sigmoid(model_y)
-        print('model-out-shape', model_out.get_shape().as_list())
+        model_out = tf.nn.softmax(model_y)
         model_out_argmax = tf.argmax(model_out, axis=1)
-        print('model-out-argmax-shape', model_out_argmax.get_shape().as_list())
-        print('y_ph shape', y_ph.get_shape().as_list())
         reshaped_y_ph = tf.reshape(y_ph, [-1])
-        print('reshaped y_ph shape', reshaped_y_ph.get_shape().as_list())
         _, accuracy_ = tf.metrics.accuracy(labels=reshaped_y_ph, predictions=tf.argmax(model_out, axis=1))
 
     saver = tf.train.Saver(write_version=saver_pb2.SaverDef.V1)
@@ -119,19 +83,10 @@ def main(_):
         for epoch in range(FLAGS.train_epochs):
             print('\nStarting epoch {}...'.format(epoch + 1))
             sess.run(tf.local_variables_initializer())
-            num_batches = int(trainset['size'] / FLAGS.batch_size)
-            # shuffle data
-            #if epoch == -1:
-            # TODO why does shuffle make the net not to learn anything ??!??!?!
-            perm = np.random.permutation(trainset['size'])
-            trainset['data'] = trainset['data'][perm]
-            trainset['labels'] = trainset['labels'][perm]
-
-            for batch_idx in range(num_batches):
-                start_idx = batch_idx * FLAGS.batch_size
-                end_idx = start_idx + FLAGS.batch_size
-                batch_x =  trainset['data'][start_idx:end_idx]
-                batch_y =  trainset['labels'][start_idx:end_idx]
+            
+            num_batches = int(dataset.train_size / FLAGS.batch_size)
+            for b in range(num_batches):
+                batch_x, batch_y = dataset.train_batch(FLAGS.batch_size)
 
                 _, loss = sess.run([train_, loss_], feed_dict={x_ph: batch_x,
                                                                y_ph: batch_y,
@@ -149,9 +104,11 @@ def main(_):
 
                 step += 1
 
-            loss, accuracy, argmax, y = sess.run([loss_, accuracy_, model_out_argmax, y_ph], feed_dict={x_ph: trainset['data'],
-                                                                     y_ph: trainset['labels'],
-                                                                     dropout_ph: 1.0})
+            valid_x, valid_y = dataset.valid()
+            loss, accuracy, argmax, y = sess.run([loss_, accuracy_, model_out_argmax, y_ph], 
+                                                 feed_dict={x_ph: valid_x,
+                                                            y_ph: valid_y,
+                                                            dropout_ph: 1.0})
             valid_losses['step'].append(step)
             valid_losses['value'].append(loss)
             valid_accuracy['step'].append(step)
@@ -172,38 +129,16 @@ def main(_):
         ax[1].plot(valid_accuracy['step'], valid_accuracy['value'], label='Valid accuracy')
         ax[1].legend(loc='lower right')
         plt.show()
-        
-        """dialog = utils.ui.CanvasDialog("Read Handwriting...", 32, 32,
-                                       scale=5, num_letters=6)
-        data = dialog.show()
-        writing = np.asarray(data)
-        
-        print(writing.shape)
-        prediction = sess.run(model_out, feed_dict={x_ph: writing, dropout_ph: 1.0})
-        print(prediction.shape)
-        print(prediction)
-        print(np.argmax(prediction, axis=1))
-        
-        
-        single_data = dataset['data'][:2]
-        single_label = dataset['labels'][:2]
-        
-        prediction, oh = sess.run([model_out, y_one_hot], feed_dict={x_ph: single_data, y_ph: single_label, dropout_ph: 1.0})
-        print('oh', oh.shape, oh)
-        print(prediction)
-        print(single_label)"""
-
+  
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--batch_size', type=int, default=100,
                         help='The batch size.')
-    PARSER.add_argument('--learning_rate', type=float, default=0.0005,
+    PARSER.add_argument('--learning_rate', type=float, default=0.001,
                         help='The initial learning rate.')
     PARSER.add_argument('--train_epochs', type=int, default=25,
                         help='The number of training epochs.')
-    PARSER.add_argument('--train_split', type=float, default=0.8,
-                        help='The data ratio for training.')
     PARSER.add_argument('--dropout', type=float, default=0.5,
                         help='The keep probability of the dropout layer.')
     PARSER.add_argument('--weight_decay', type=float, default=5e-4,

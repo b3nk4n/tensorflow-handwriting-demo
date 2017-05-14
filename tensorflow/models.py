@@ -15,7 +15,9 @@ def neural_net(x, layers, keep_prob, weight_decay):
                                              weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay))
 
 def conv_net(x, convs, fullys, keep_prob, weight_decay):
-    y = tf.reshape(x, [-1, 32, 32, 1])
+    x_dims = x.get_shape().as_list()[-1]
+    x_dims_sqrt = int(np.sqrt(x_dims))
+    y = tf.reshape(x, [-1, x_dims_sqrt, x_dims_sqrt, 1])
     for conv in convs:
         y = tf.contrib.layers.conv2d(y, conv[0], kernel_size=[conv[1], conv[1]], stride=[1, 1], padding='SAME',
                                         weights_initializer=tf.contrib.layers.xavier_initializer_conv2d(),

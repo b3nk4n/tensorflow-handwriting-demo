@@ -6,16 +6,13 @@ import tensorflow as tf
 
 import utils.ui
 
+FLAGS = None
+
 
 def main(_):
-    
     with tf.Session() as sess:
-        #new_saver = tf.train.import_meta_graph('checkpoint/model.ckpt.meta')
-        #new_saver.restore(sess, 'checkpoint/model.ckpt.data-00000-of-00001')
         new_saver = tf.train.import_meta_graph('checkpoint/model.ckpt.meta')
         new_saver.restore(sess, 'checkpoint/model.ckpt')
-        # tf.get_collection() returns a list. In this example we only want the
-        # first one.
         x_ph = tf.get_collection('x_ph')[0]
         dropout_ph = tf.get_collection('dropout_ph')[0]
         
@@ -29,13 +26,9 @@ def main(_):
             
             if writing.shape[0] == 0:
                 break
-            print(writing.shape)
+            
             prediction = sess.run(model_y, feed_dict={x_ph: writing, dropout_ph: 1.0})
-            print(prediction.shape)
-            print(prediction)
             print(np.argmax(prediction, axis=1))
-        
-
 
 
 if __name__ == "__main__":
