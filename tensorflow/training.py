@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import os
 import sys
 import time
@@ -135,13 +137,13 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--batch_size', type=int, default=100,
                         help='The batch size.')
-    PARSER.add_argument('--learning_rate', type=float, default=0.001,
+    PARSER.add_argument('--learning_rate', type=float, default=0.00025,
                         help='The initial learning rate.')
-    PARSER.add_argument('--train_epochs', type=int, default=25,
+    PARSER.add_argument('--train_epochs', type=int, default=100,
                         help='The number of training epochs.')
     PARSER.add_argument('--dropout', type=float, default=0.5,
                         help='The keep probability of the dropout layer.')
-    PARSER.add_argument('--weight_decay', type=float, default=5e-4,
+    PARSER.add_argument('--weight_decay', type=float, default=0.001,
                         help='The lambda koefficient for weight decay regularization.')
     PARSER.add_argument('--model', type=str, default='neural_net',
                         help='The network model no use.')
