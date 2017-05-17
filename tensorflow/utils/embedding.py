@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
 
-import graphics
+import utils.graphics
 
 
 class EmbeddingVisualizer(object):
@@ -67,5 +67,5 @@ class EmbeddingVisualizer(object):
         metadata_file.close()
 
     def _create_sprite(self, log_dir):
-        sprite = graphics.images_to_sprite(self.input_data)
+        sprite = utils.graphics.images_to_sprite(self.input_data)
         scipy.misc.imsave(os.path.join(log_dir, 'sprite.png'), sprite)
