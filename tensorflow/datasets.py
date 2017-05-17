@@ -63,7 +63,6 @@ class MnistDataset(Dataset):
     
     def valid(self):
         data_x, data_y = self.mnist.validation.next_batch(self.valid_size)
-        print(data_x.shape)
         data_y = data_y.reshape(-1, 1)
         return data_x, data_y
     

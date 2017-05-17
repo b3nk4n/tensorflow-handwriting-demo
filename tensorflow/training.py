@@ -25,8 +25,8 @@ FLAGS = None
 def main(_):
     """Executed only if run as a script."""
 
-    dataset = datasets.HandwritingDataset()
-    #dataset = datasets.MnistDataset()
+    #dataset = datasets.HandwritingDataset()
+    dataset = datasets.MnistDataset()
 
     dataset.show_info()
 
@@ -55,6 +55,7 @@ def main(_):
         y_one_hot = tf.reshape(y_one_hot, [-1, dataset.num_classes])
         loss_ = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model_y, labels=y_one_hot))
         regularization_list = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+        tf.summary.scalar('xe-loss', loss_)
         if len(regularization_list) > 0:
             loss_ += tf.add_n(regularization_list) 
 
@@ -65,10 +66,20 @@ def main(_):
         model_out_argmax = tf.argmax(model_out, axis=1)
         reshaped_y_ph = tf.reshape(y_ph, [-1])
         _, accuracy_ = tf.metrics.accuracy(labels=reshaped_y_ph, predictions=tf.argmax(model_out, axis=1))
+        tf.summary.scalar('accuracy', accuracy_)
 
     saver = tf.train.Saver(write_version=saver_pb2.SaverDef.V1)
 
+    summary_ = tf.summary.merge_all()
+
     with tf.Session() as sess:
+        # delete old summaries
+        if tf.gfile.IsDirectory('summary'):
+            tf.gfile.DeleteRecursively('summary')
+
+        train_writer = tf.summary.FileWriter('summary/training', sess.graph)
+        valid_writer = tf.summary.FileWriter('summary/validation')
+
         sess.run(tf.global_variables_initializer())
 
         print('\nModel with {} trainable parameters.'.format(utils.tensor.get_num_trainable_params()))
@@ -91,9 +102,10 @@ def main(_):
             for b in range(num_batches):
                 batch_x, batch_y = dataset.train_batch(FLAGS.batch_size)
 
-                _, loss = sess.run([train_, loss_], feed_dict={x_ph: batch_x,
-                                                               y_ph: batch_y,
-                                                               dropout_ph: FLAGS.dropout})
+                _, loss, summary = sess.run([train_, loss_, summary_],
+                                            feed_dict={x_ph: batch_x,
+                                                        y_ph: batch_y,
+                                                        dropout_ph: FLAGS.dropout})
                 loss_sum += loss
                 loss_n += 1
 
@@ -104,19 +116,21 @@ def main(_):
                     print('Step {:3d} with loss: {:.5f}'.format(step, loss_avg))
                     loss_sum = 0.0
                     loss_n = 0
+                    train_writer.add_summary(summary, step)
 
                 step += 1
 
             valid_x, valid_y = dataset.valid()
-            loss, accuracy, argmax, y = sess.run([loss_, accuracy_, model_out_argmax, y_ph], 
-                                                 feed_dict={x_ph: valid_x,
-                                                            y_ph: valid_y,
-                                                            dropout_ph: 1.0})
+            loss, accuracy, argmax, y, summary = sess.run([loss_, accuracy_, model_out_argmax, y_ph, summary_], 
+                                                           feed_dict={x_ph: valid_x,
+                                                                   y_ph: valid_y,
+                                                                   dropout_ph: 1.0})
             valid_losses['step'].append(step)
             valid_losses['value'].append(loss)
             valid_accuracy['step'].append(step)
             valid_accuracy['value'].append(accuracy)
             print('VALIDATION > Step {:3d} with loss: {:.5f}, accuracy: {:.4f}'.format(step, loss, accuracy))
+            valid_writer.add_summary(summary, step)
 
         if FLAGS.save_checkpoint:
             checkpoint_dir = "checkpoint"
@@ -132,7 +146,7 @@ def main(_):
         ax[1].plot(valid_accuracy['step'], valid_accuracy['value'], label='Valid accuracy')
         ax[1].legend(loc='lower right')
         plt.show()
-  
+
 
 if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
