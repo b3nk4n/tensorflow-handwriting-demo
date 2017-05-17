@@ -16,6 +16,7 @@ from tensorflow.core.protobuf import saver_pb2
 
 import utils.ui
 import utils.tensor
+import utils.embedding
 import models
 import datasets
 
@@ -25,8 +26,8 @@ FLAGS = None
 def main(_):
     """Executed only if run as a script."""
 
-    #dataset = datasets.HandwritingDataset()
-    dataset = datasets.MnistDataset()
+    dataset = datasets.HandwritingDataset()
+    #dataset = datasets.MnistDataset()
 
     dataset.show_info()
 
@@ -40,11 +41,11 @@ def main(_):
 
     with tf.name_scope('model'):
         if FLAGS.model == 'neural_net':
-            model_y = models.neural_net(x_ph, [32, dataset.num_classes],
-                                        dropout_ph, FLAGS.weight_decay)
+            model_y, emb_layer = models.neural_net(x_ph, [32, dataset.num_classes],
+                                                   dropout_ph, FLAGS.weight_decay)
         elif FLAGS.model == 'conv_net':
-            model_y = models.conv_net(x_ph, [(8, 5), (8, 3)], [32, dataset.num_classes],
-                                      dropout_ph, FLAGS.weight_decay)
+            model_y, emb_layer = models.conv_net(x_ph, [(8, 5), (8, 3)], [32, dataset.num_classes],
+                                                 dropout_ph, FLAGS.weight_decay)
         else:
             raise 'Unknown network model type.'
 
@@ -54,6 +55,7 @@ def main(_):
         y_one_hot = tf.one_hot(indices=y_ph, depth=dataset.num_classes, on_value=1.0, off_value=0.0, axis=-1)
         y_one_hot = tf.reshape(y_one_hot, [-1, dataset.num_classes])
         loss_ = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model_y, labels=y_one_hot))
+        tf.add_to_collection('loss', loss_)
         regularization_list = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         tf.summary.scalar('xe-loss', loss_)
         if len(regularization_list) > 0:
@@ -66,6 +68,7 @@ def main(_):
         model_out_argmax = tf.argmax(model_out, axis=1)
         reshaped_y_ph = tf.reshape(y_ph, [-1])
         _, accuracy_ = tf.metrics.accuracy(labels=reshaped_y_ph, predictions=tf.argmax(model_out, axis=1))
+        tf.add_to_collection('accuracy', accuracy_)
         tf.summary.scalar('accuracy', accuracy_)
 
     saver = tf.train.Saver(write_version=saver_pb2.SaverDef.V1)
@@ -74,11 +77,12 @@ def main(_):
 
     with tf.Session() as sess:
         # delete old summaries
-        if tf.gfile.IsDirectory('summary'):
-            tf.gfile.DeleteRecursively('summary')
+        summary_dir = 'summary'
+        if tf.gfile.IsDirectory(summary_dir):
+            tf.gfile.DeleteRecursively(summary_dir)
 
-        train_writer = tf.summary.FileWriter('summary/training', sess.graph)
-        valid_writer = tf.summary.FileWriter('summary/validation')
+        train_writer = tf.summary.FileWriter(os.path.join(summary_dir, 'training'), sess.graph)
+        valid_writer = tf.summary.FileWriter(os.path.join(summary_dir, 'validation'))
 
         sess.run(tf.global_variables_initializer())
 
@@ -117,28 +121,40 @@ def main(_):
                     loss_sum = 0.0
                     loss_n = 0
                     train_writer.add_summary(summary, step)
+                    train_writer.flush()
 
                 step += 1
 
             valid_x, valid_y = dataset.valid()
-            loss, accuracy, argmax, y, summary = sess.run([loss_, accuracy_, model_out_argmax, y_ph, summary_], 
-                                                           feed_dict={x_ph: valid_x,
-                                                                   y_ph: valid_y,
-                                                                   dropout_ph: 1.0})
+            loss, accuracy, summary = sess.run([loss_, accuracy_, summary_], 
+                                               feed_dict={x_ph: valid_x,
+                                                          y_ph: valid_y,
+                                                          dropout_ph: 1.0})
             valid_losses['step'].append(step)
             valid_losses['value'].append(loss)
             valid_accuracy['step'].append(step)
             valid_accuracy['value'].append(accuracy)
             print('VALIDATION > Step {:3d} with loss: {:.5f}, accuracy: {:.4f}'.format(step, loss, accuracy))
             valid_writer.add_summary(summary, step)
+            valid_writer.flush()
 
         if FLAGS.save_checkpoint:
             checkpoint_dir = "checkpoint"
-            if not os.path.exists(checkpoint_dir):
+            if not os.path.isdir(checkpoint_dir):
                 os.makedirs(checkpoint_dir)
             # save checkpoint
             save_path = saver.save(sess, os.path.join(checkpoint_dir, "model.ckpt"))
             print("Model saved in file: {}".format(save_path))
+
+        if FLAGS.save_embedding:
+            log_dir = "summary"
+            if not os.path.isdir(log_dir):
+                os.makedirs(log_dir)
+
+            valid_x, valid_y = dataset.valid()
+
+            embvis = utils.embedding.EmbeddingVisualizer(sess, valid_x, valid_y, x_ph, emb_layer)
+            embvis.write(log_dir)
 
         ax[0].plot(train_losses['step'], train_losses['value'], label='Train loss')
         ax[0].plot(valid_losses['step'], valid_losses['value'], label='Valid loss')
@@ -164,5 +180,7 @@ if __name__ == "__main__":
                         help='The network model no use.')
     PARSER.add_argument('--save_checkpoint', type=bool, default=False,
                         help='Whether we save a checkpoint or not.')
+    PARSER.add_argument('--save_embedding', type=bool, default=False,
+                        help='Whether we save the embedding.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)

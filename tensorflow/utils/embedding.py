@@ -1,5 +1,6 @@
 """ Embedding visualization utility module. """
 import os
+import math
 import scipy
 import numpy as np
 import tensorflow as tf
@@ -17,7 +18,7 @@ class EmbeddingVisualizer(object):
         self.input_ph = input_placeholder
         self.fetch_tensor = fetch_tensor
         self.num_examples = input_data.shape[0]  # N
-        self.emb_dim = fetch_tensor.shape[3]  # p
+        self.emb_dim = fetch_tensor.shape[1]  # p
 
     def write(self, log_dir):
         """ Write the embadding matrix to the given log path. """
@@ -63,9 +64,11 @@ class EmbeddingVisualizer(object):
         metadata_file = open(os.path.join(log_dir, 'metadata.tsv'), 'w')
         metadata_file.write('Name\tClass\n')
         for i in range(self.num_examples):
-            metadata_file.write('%06d\t%s\n' % (i, names[self.labels[i]]))
+            metadata_file.write('%06d\t%s\n' % (i, names[int(self.labels[i, 0])]))
         metadata_file.close()
 
     def _create_sprite(self, log_dir):
-        sprite = utils.graphics.images_to_sprite(self.input_data)
+        thumbnail_size = int(math.sqrt(self.input_data.shape[-1]))  # TODO refactor: specific to image in put shape (N, d)
+        images = self.input_data.reshape(-1, thumbnail_size, thumbnail_size).astype(np.float32)
+        sprite = utils.graphics.images_to_sprite(images)
         scipy.misc.imsave(os.path.join(log_dir, 'sprite.png'), sprite)

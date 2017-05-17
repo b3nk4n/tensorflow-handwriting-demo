@@ -4,15 +4,17 @@ import tensorflow as tf
 
 def neural_net(x, layers, keep_prob, weight_decay):
     y = x
-    for layer in layers[:-1]:
+    embedding_layer = None
+    for i, layer in enumerate(layers[:-1]):
         y = tf.contrib.layers.fully_connected(x, layer,
                                               weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                              weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay),
-                                              activation_fn=tf.nn.relu)
+                                              weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay))
+        embedding_layer = y
+        y = tf.nn.relu(y)
     y = tf.nn.dropout(y, keep_prob=keep_prob)
     return tf.contrib.layers.fully_connected(y , layers[-1],
                                              weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                             weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay))
+                                             weights_regularizer=tf.contrib.layers.l2_regularizer(weight_decay)), embedding_layer
 
 def conv_net(x, convs, fullys, keep_prob, weight_decay):
     x_dims = x.get_shape().as_list()[-1]
