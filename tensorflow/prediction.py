@@ -1,3 +1,4 @@
+""" Restores a trained model and predicts handwritings. """
 from __future__ import absolute_import, division, print_function
 
 import sys
@@ -17,18 +18,18 @@ def main(_):
         new_saver.restore(sess, 'checkpoint/model.ckpt')
         x_ph = tf.get_collection('x_ph')[0]
         dropout_ph = tf.get_collection('dropout_ph')[0]
-        
+
         model_y = tf.get_collection('model_y')[0]
-        
+
         while True:
             dialog = utils.ui.CanvasDialog("Read Handwriting...", 32, 32,
                                            scale=5, num_letters=FLAGS.num_letters)
             data = dialog.show()
             writing = np.asarray(data)
-            
+
             if writing.shape[0] == 0:
                 break
-            
+
             prediction = sess.run(model_y, feed_dict={x_ph: writing, dropout_ph: 1.0})
             print(prediction)
             print(prediction.shape)

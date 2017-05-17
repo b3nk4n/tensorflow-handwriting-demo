@@ -1,3 +1,4 @@
+""" Trains a model on handwriting data. """
 from __future__ import absolute_import, division, print_function
 
 import os
@@ -26,7 +27,7 @@ def main(_):
 
     dataset = datasets.HandwritingDataset()
     #dataset = datasets.MnistDataset()
-    
+
     dataset.show_info()
 
     with tf.name_scope('placeholders'):
@@ -46,9 +47,9 @@ def main(_):
                                       dropout_ph, FLAGS.weight_decay)
         else:
             raise 'Unknown network model type.'
-            
+
     tf.add_to_collection("model_y", tf.nn.softmax(model_y))
-    
+
     with tf.name_scope('loss'):
         y_one_hot = tf.one_hot(indices=y_ph, depth=dataset.num_classes, on_value=1.0, off_value=0.0, axis=-1)
         y_one_hot = tf.reshape(y_one_hot, [-1, dataset.num_classes])
@@ -69,7 +70,7 @@ def main(_):
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        
+
         print('\nModel with {} trainable parameters.'.format(utils.tensor.get_num_trainable_params()))
         time.sleep(3)
         print('\nTraining...')
@@ -85,7 +86,7 @@ def main(_):
         for epoch in range(FLAGS.train_epochs):
             print('\nStarting epoch {}...'.format(epoch + 1))
             sess.run(tf.local_variables_initializer())
-            
+
             num_batches = int(dataset.train_size / FLAGS.batch_size)
             for b in range(num_batches):
                 batch_x, batch_y = dataset.train_batch(FLAGS.batch_size)
@@ -151,4 +152,3 @@ if __name__ == "__main__":
                         help='Whether we save a checkpoint or not.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
-
