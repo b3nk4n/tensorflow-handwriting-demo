@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import math
-import scipy
+import scipy.misc
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
@@ -22,9 +22,9 @@ class EmbeddingVisualizer(object):
         self.num_examples = input_data.shape[0]  # N
         self.emb_dim = fetch_tensor.shape[1]  # p
 
-    def write(self, log_dir):
+    def write(self, log_dir, alphabetical=False):
         """ Write the embadding matrix to the given log path. """
-        self._create_metadata(log_dir)
+        self._create_metadata(log_dir, alphabetical)
         self._create_sprite(log_dir)
         self._write_embedding_matrix(log_dir)
 
@@ -41,7 +41,7 @@ class EmbeddingVisualizer(object):
         # The embedding variable, which needs to be stored
         # Note this must a Variable not a Tensor!
         emb = self._create_embedding()
-        embedding_var = tf.Variable(emb, name='Embedding_Visualization')
+        embedding_var = tf.Variable(emb, name='EmbeddingVisualization')
         self.sess.run(embedding_var.initializer)
         summary_writer = tf.summary.FileWriter(log_dir)
         config = projector.ProjectorConfig()
@@ -53,24 +53,35 @@ class EmbeddingVisualizer(object):
 
         # Comment out if you don't want sprites
         embedding.sprite.image_path = os.path.join(log_dir, 'sprite.png')
-        embedding.sprite.single_image_dim.extend([self.input_data.shape[1],
-                                                  self.input_data.shape[1]])
+        thumbnail_size = int(math.sqrt(self.input_data.shape[-1]))  # TODO refactor: specific to image in put shape (N, h, w)
+        embedding.sprite.single_image_dim.extend([thumbnail_size,
+                                                  thumbnail_size])
 
         projector.visualize_embeddings(summary_writer, config)
         saver = tf.train.Saver([embedding_var])
         saver.save(self.sess, os.path.join(log_dir, 'model2.ckpt'))
 
-    def _create_metadata(self, log_dir):
+    def _create_metadata(self, log_dir, alphabetical):
         """ Crates the meta data file """
-        names = [chr(i) for i in range(65, 65 + 26)]
+        def map_alpha(number):
+            return chr(65 + number)
+
+        def map_num(number):
+            return number
+
+        if alphabetical:
+            mapping = map_alpha
+        else:
+            mapping = map_num
+
         metadata_file = open(os.path.join(log_dir, 'metadata.tsv'), 'w')
         metadata_file.write('Name\tClass\n')
         for i in range(self.num_examples):
-            metadata_file.write('%06d\t%s\n' % (i, names[int(self.labels[i, 0])]))
+            metadata_file.write('%06d\t%s\n' % (i, mapping(int(self.labels[i, 0]))))
         metadata_file.close()
 
     def _create_sprite(self, log_dir):
-        thumbnail_size = int(math.sqrt(self.input_data.shape[-1]))  # TODO refactor: specific to image in put shape (N, d)
+        thumbnail_size = int(math.sqrt(self.input_data.shape[-1]))  # TODO refactor: specific to image in put shape (N, h, w)
         images = self.input_data.reshape(-1, thumbnail_size, thumbnail_size).astype(np.float32)
         sprite = utils.graphics.images_to_sprite(images)
         scipy.misc.imsave(os.path.join(log_dir, 'sprite.png'), sprite)

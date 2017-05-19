@@ -29,7 +29,7 @@ def main(_):
     elif FLAGS.dataset == 'hw-production':
         dataset = datasets.HandwritingDataset('http://bsautermeister.de/tensorflow-handwriting-demo')
     else:
-        raise 'Unknown dataset.'
+        raise Exception('Unknown dataset.')
 
     dataset.show_info()
 
@@ -37,27 +37,27 @@ def main(_):
         x_ph = tf.placeholder(tf.float32, shape=[None, np.prod(dataset.data_shape)])
         y_ph = tf.placeholder(tf.int32, shape=[None, 1])
         dropout_ph = tf.placeholder(tf.float32)
-        tf.add_to_collection("x_ph", x_ph)
-        tf.add_to_collection("y_ph", y_ph)
-        tf.add_to_collection("dropout_ph", dropout_ph)
+        tf.add_to_collection('x_ph', x_ph)
+        tf.add_to_collection('y_ph', y_ph)
+        tf.add_to_collection('dropout_ph', dropout_ph)
 
     with tf.name_scope('model'):
+        model_y = emb_layer = None
         if FLAGS.model == 'neural_net':
             model_y, emb_layer = models.neural_net(x_ph, [32, dataset.num_classes],
                                                    dropout_ph, FLAGS.weight_decay)
         elif FLAGS.model == 'conv_net':
-            model_y, emb_layer = models.conv_net(x_ph, [(8, 5), (8, 3)], [32, dataset.num_classes],
+            model_y, emb_layer = models.conv_net(x_ph, [(16, 5), (32, 3)], [128, dataset.num_classes],
                                                  dropout_ph, FLAGS.weight_decay)
         else:
-            raise 'Unknown network model type.'
+            raise Exception('Unknown network model type.')
 
-    tf.add_to_collection("model_y", tf.nn.softmax(model_y))
+    tf.add_to_collection('model_y', tf.nn.softmax(model_y))
 
     with tf.name_scope('loss'):
         y_one_hot = tf.one_hot(indices=y_ph, depth=dataset.num_classes, on_value=1.0, off_value=0.0, axis=-1)
         y_one_hot = tf.reshape(y_one_hot, [-1, dataset.num_classes])
         loss_ = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model_y, labels=y_one_hot))
-        tf.add_to_collection('loss', loss_)
         regularization_list = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
         tf.summary.scalar('xe-loss', loss_)
         if len(regularization_list) > 0:
@@ -67,10 +67,8 @@ def main(_):
 
     with tf.name_scope('metrics'):
         model_out = tf.nn.softmax(model_y)
-        model_out_argmax = tf.argmax(model_out, axis=1)
         reshaped_y_ph = tf.reshape(y_ph, [-1])
         _, accuracy_ = tf.metrics.accuracy(labels=reshaped_y_ph, predictions=tf.argmax(model_out, axis=1))
-        tf.add_to_collection('accuracy', accuracy_)
         tf.summary.scalar('accuracy', accuracy_)
 
     saver = tf.train.Saver(write_version=saver_pb2.SaverDef.V1)
@@ -95,11 +93,12 @@ def main(_):
         f, ax = plt.subplots(2, 1)
         train_losses = {'step': [], 'value': []}
         valid_losses = {'step': [], 'value': []}
-        valid_accuracy= {'step': [], 'value': []}
+        valid_accuracy = {'step': [], 'value': []}
 
         step = 1
         loss_sum = 0.0
         loss_n = 0
+
         for epoch in range(FLAGS.train_epochs):
             print('\nStarting epoch {}...'.format(epoch + 1))
             sess.run(tf.local_variables_initializer())
@@ -110,12 +109,13 @@ def main(_):
 
                 _, loss, summary = sess.run([train_, loss_, summary_],
                                             feed_dict={x_ph: batch_x,
-                                                        y_ph: batch_y,
-                                                        dropout_ph: FLAGS.dropout})
+                                                       y_ph: batch_y,
+                                                       dropout_ph: FLAGS.dropout})
+
                 loss_sum += loss
                 loss_n += 1
 
-                if step % 5 == 0:
+                if step % 10 == 0:
                     loss_avg = loss_sum / loss_n
                     train_losses['step'].append(step)
                     train_losses['value'].append(loss_avg)
@@ -141,22 +141,24 @@ def main(_):
             valid_writer.flush()
 
         if FLAGS.save_checkpoint:
-            checkpoint_dir = "checkpoint"
+            checkpoint_dir = 'checkpoint'
             if not os.path.isdir(checkpoint_dir):
                 os.makedirs(checkpoint_dir)
             # save checkpoint
-            save_path = saver.save(sess, os.path.join(checkpoint_dir, "model.ckpt"))
-            print("Model saved in file: {}".format(save_path))
+            print('Saving checkpoint...')
+            save_path = saver.save(sess, os.path.join(checkpoint_dir, 'model.ckpt'))
+            print('Model saved in file: {}'.format(save_path))
 
         if FLAGS.save_embedding:
-            log_dir = "summary"
+            log_dir = 'summary/validation'
             if not os.path.isdir(log_dir):
                 os.makedirs(log_dir)
 
             valid_x, valid_y = dataset.valid()
 
+            print('Saving embedding...')
             embvis = utils.embedding.EmbeddingVisualizer(sess, valid_x, valid_y, x_ph, emb_layer)
-            embvis.write(log_dir)
+            embvis.write(log_dir, alphabetical=FLAGS.dataset != 'mnist')
 
         ax[0].plot(train_losses['step'], train_losses['value'], label='Train loss')
         ax[0].plot(valid_losses['step'], valid_losses['value'], label='Valid loss')
@@ -166,13 +168,13 @@ def main(_):
         plt.show()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--batch_size', type=int, default=100,
+    PARSER.add_argument('--batch_size', type=int, default=64,
                         help='The batch size.')
     PARSER.add_argument('--learning_rate', type=float, default=0.00025,
                         help='The initial learning rate.')
-    PARSER.add_argument('--train_epochs', type=int, default=100,
+    PARSER.add_argument('--train_epochs', type=int, default=5,
                         help='The number of training epochs.')
     PARSER.add_argument('--dropout', type=float, default=0.5,
                         help='The keep probability of the dropout layer.')
@@ -180,9 +182,9 @@ if __name__ == "__main__":
                         help='The lambda koefficient for weight decay regularization.')
     PARSER.add_argument('--model', type=str, default='neural_net',
                         help='The network model no use.')
-    PARSER.add_argument('--save_checkpoint', type=bool, default=False,
+    PARSER.add_argument('--save_checkpoint', type=bool, default=True,
                         help='Whether we save a checkpoint or not.')
-    PARSER.add_argument('--save_embedding', type=bool, default=False,
+    PARSER.add_argument('--save_embedding', type=bool, default=True,
                         help='Whether we save the embedding.')
     PARSER.add_argument('--dataset', type=str, default='mnist',
                         help='The dataset to use.')
