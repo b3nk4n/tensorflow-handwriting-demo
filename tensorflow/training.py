@@ -5,9 +5,6 @@ import os
 import sys
 import time
 import argparse
-import json
-import urllib
-import collections
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -25,9 +22,14 @@ FLAGS = None
 
 def main(_):
     """Executed only if run as a script."""
-
-    dataset = datasets.HandwritingDataset()
-    #dataset = datasets.MnistDataset()
+    if FLAGS.dataset == 'mnist':
+        dataset = datasets.MnistDataset()
+    elif FLAGS.dataset == 'hw-local':
+        dataset = datasets.HandwritingDataset('http://localhost:3000')
+    elif FLAGS.dataset == 'hw-production':
+        dataset = datasets.HandwritingDataset('http://bsautermeister.de/tensorflow-handwriting-demo')
+    else:
+        raise 'Unknown dataset.'
 
     dataset.show_info()
 
@@ -182,5 +184,7 @@ if __name__ == "__main__":
                         help='Whether we save a checkpoint or not.')
     PARSER.add_argument('--save_embedding', type=bool, default=False,
                         help='Whether we save the embedding.')
+    PARSER.add_argument('--dataset', type=str, default='mnist',
+                        help='The dataset to use.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)

@@ -1,11 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+""" The datasets to use in the demo, both using the same interfaces. """
+from __future__ import absolute_import, division, print_function
 
 from abc import ABCMeta, abstractmethod, abstractproperty 
 
 import json
 import urllib
+import urlparse
 import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -18,11 +18,11 @@ class Dataset:
 
     def show_info(self):
         print()
-        print("# Dataset:        {}".format(self.name))
-        print("# Training Set:   {} examples".format(self.train_size))
-        print("# Validation Set: {} examples".format(self.valid_size))
-        print("# Classes:        {}".format(self.num_classes))
-        print("# Data Shape:     {}".format(self.data_shape))
+        print('# Dataset:        {}'.format(self.name))
+        print('# Training Set:   {} examples'.format(self.train_size))
+        print('# Validation Set: {} examples'.format(self.valid_size))
+        print('# Classes:        {}'.format(self.num_classes))
+        print('# Data Shape:     {}'.format(self.data_shape))
         print()
 
     @abstractmethod
@@ -54,7 +54,7 @@ class MnistDataset(Dataset):
     
     def __init__(self):
         self.mnist = input_data.read_data_sets('tmp/mnist', one_hot=False)
-        super(MnistDataset, self).__init__("MNIST Dataset")
+        super(MnistDataset, self).__init__('MNIST Dataset')
     
     def train_batch(self, batch_size):
         batch_x, batch_y = self.mnist.train.next_batch(batch_size)
@@ -68,7 +68,7 @@ class MnistDataset(Dataset):
     
     @property
     def data_shape(self):
-        return (28, 28)
+        return 28, 28
     
     @property
     def num_classes(self):
@@ -85,10 +85,10 @@ class MnistDataset(Dataset):
 
 class HandwritingDataset(Dataset):
     
-    def __init__(self):
+    def __init__(self, base_url):
         self.batch_idx = 0
-        self._download_data('http://localhost:3000/api/handwriting')
-        super(HandwritingDataset, self).__init__("Handwriting Dataset")
+        self._download_data(urlparse.urljoin(base_url, '/api/handwriting'))
+        super(HandwritingDataset, self).__init__('Handwriting Dataset')
         
     def _download_data(self, url):
         print('\nFetiching data...')
@@ -108,8 +108,8 @@ class HandwritingDataset(Dataset):
         }
         
         # split data into different sets
-        TRAIN_SPLIT = 0.8
-        split_idx = int(n_data * TRAIN_SPLIT)
+        train_split = 0.8
+        split_idx = int(n_data * train_split)
         self.trainset = {
             'size': split_idx,
             'data': dataset['data'][:split_idx],
@@ -124,15 +124,15 @@ class HandwritingDataset(Dataset):
     def train_batch(self, batch_size):
         if self.batch_idx + batch_size > self.train_size:
             # shuffle data
-            perm = np.random.permutation(trainset['size'])
-            trainset['data'] = trainset['data'][perm]
-            trainset['labels'] = trainset['labels'][perm]
+            perm = np.random.permutation(self.trainset['size'])
+            self.trainset['data'] = self.trainset['data'][perm]
+            self.trainset['labels'] = self.trainset['labels'][perm]
             self.batch_idx = 0
         
         start_idx = self.batch_idx * batch_size
         end_idx = start_idx + batch_size
-        batch_x =  self.trainset['data'][start_idx:end_idx]
-        batch_y =  self.trainset['labels'][start_idx:end_idx]
+        batch_x = self.trainset['data'][start_idx:end_idx]
+        batch_y = self.trainset['labels'][start_idx:end_idx]
         return batch_x, batch_y
         
     def valid(self):
@@ -140,7 +140,7 @@ class HandwritingDataset(Dataset):
     
     @property
     def data_shape(self):
-        return (32, 32)
+        return 32, 32
     
     @property
     def num_classes(self):
