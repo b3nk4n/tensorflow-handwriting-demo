@@ -64,7 +64,7 @@ $(function() {
 
             $.ajax({
                 type: "POST",
-                url: "http://localhost:3000/api/handwriting",
+                url: "http://localhost:64303/api/handwriting",
                 crossDomain: true,
                 contentType: 'application/json',
                 dataType: 'json',

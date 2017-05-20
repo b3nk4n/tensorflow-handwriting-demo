@@ -1,12 +1,12 @@
-var express = require('express')
-var expressMongoRest = require('express-mongo-rest')
-var app = express()
+var express = require('express');
+var expressMongoRest = require('express-mongo-rest');
+var app = express();
 
-app.use('/api', expressMongoRest('mongodb://localhost:27018/handwriting-db'))
+app.use('/api', expressMongoRest('mongodb://localhost:20984/handwritings'));
 
 /* serves main page */
 app.get("/", function(req, res) {
-    res.sendfile('index.html')
+    res.sendFile('index.html', {root: __dirname});
 });
 
 /* serves all the static files */
@@ -15,6 +15,6 @@ app.get(/^(.+)$/, function(req, res){
     res.sendfile( __dirname + req.params[0]); 
 });
 
-var server = app.listen(3000, function () {
+var server = app.listen(64303, function () {
     console.log('Listening on Port', server.address().port)
 })
