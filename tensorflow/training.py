@@ -4,10 +4,10 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 import time
+import math
 import argparse
 import matplotlib.pyplot as plt
 
-import numpy as np
 import tensorflow as tf
 from tensorflow.core.protobuf import saver_pb2
 
@@ -37,17 +37,30 @@ def main(_):
         x_ph = tf.placeholder(tf.float32, shape=[None] + list(dataset.data_shape))
         y_ph = tf.placeholder(tf.int32, shape=[None, 1])
         dropout_ph = tf.placeholder(tf.float32)
+        augment_ph = tf.placeholder_with_default(tf.constant(False, tf.bool), shape=[])
         tf.add_to_collection('x_ph', x_ph)
         tf.add_to_collection('y_ph', y_ph)
         tf.add_to_collection('dropout_ph', dropout_ph)
+        tf.add_to_collection('augment_ph', augment_ph)
+
+    with tf.name_scope('data_augmentation'):
+
+        def augment_data(input_data):
+            res = tf.contrib.image.rotate(input_data,
+                                          tf.random_uniform([tf.shape(input_data)[0]],
+                                                            maxval=math.pi / 180 * 5,
+                                                            minval=math.pi / 180 * -5))
+            return res
+
+        preprocessed = tf.cond(augment_ph, lambda: augment_data(x_ph), lambda: x_ph)
 
     with tf.name_scope('model'):
         model_y = emb_layer = None
         if FLAGS.model == 'neural_net':
-            model_y, emb_layer = models.neural_net(x_ph, [32, dataset.num_classes],
+            model_y, emb_layer = models.neural_net(preprocessed, [128, 128, dataset.num_classes],
                                                    dropout_ph, FLAGS.weight_decay)
         elif FLAGS.model == 'conv_net':
-            model_y, emb_layer = models.conv_net(x_ph, [(16, 5), (32, 3)], [128, dataset.num_classes],
+            model_y, emb_layer = models.conv_net(preprocessed, [(16, 5), (32, 3)], [128, dataset.num_classes],
                                                  dropout_ph, FLAGS.weight_decay)
         else:
             raise Exception('Unknown network model type.')
@@ -110,7 +123,8 @@ def main(_):
                 _, loss, summary = sess.run([train_, loss_, summary_],
                                             feed_dict={x_ph: batch_x,
                                                        y_ph: batch_y,
-                                                       dropout_ph: FLAGS.dropout})
+                                                       dropout_ph: FLAGS.dropout,
+                                                       augment_ph: FLAGS.augmentation})
 
                 loss_sum += loss
                 loss_n += 1
@@ -174,7 +188,7 @@ if __name__ == '__main__':
                         help='The batch size.')
     PARSER.add_argument('--learning_rate', type=float, default=0.00025,
                         help='The initial learning rate.')
-    PARSER.add_argument('--train_epochs', type=int, default=5,
+    PARSER.add_argument('--train_epochs', type=int, default=50,
                         help='The number of training epochs.')
     PARSER.add_argument('--dropout', type=float, default=0.5,
                         help='The keep probability of the dropout layer.')
@@ -188,5 +202,7 @@ if __name__ == '__main__':
                         help='Whether we save the embedding.')
     PARSER.add_argument('--dataset', type=str, default='mnist',
                         help='The dataset to use.')
+    PARSER.add_argument('--augmentation', type=bool, default=False,
+                        help='Whether data augmentation (rotate/shift) is used or not.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)

@@ -13,7 +13,6 @@ def images_to_sprite(data):
     Returns:
       data: Properly shaped HxWx3 image with any necessary padding.
     """
-    print('shape', data.shape)
     if len(data.shape) == 3:
         data = np.tile(data[..., np.newaxis], (1, 1, 1, 3))
     data = data.astype(np.float32)
