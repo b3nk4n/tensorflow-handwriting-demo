@@ -7,6 +7,10 @@ import argparse
 import numpy as np
 import tensorflow as tf
 
+# Required import to reload the graph using tf.contrib.image.rotate():
+# See: https://stackoverflow.com/questions/43287850
+import tensorflow.contrib.image
+
 import utils.ui
 
 FLAGS = None

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 import tensorflow as tf
 from tensorflow.core.protobuf import saver_pb2
+import tensorflow.contrib.image
 
 import utils.ui
 import utils.tensor
