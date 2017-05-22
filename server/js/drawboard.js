@@ -1,5 +1,5 @@
 $(function() {
-    var drawboardCanvas = document.getElementById("drawboardCanvas");
+    var drawboardCanvas = document.getElementById('drawboardCanvas');
     preventPageScrolling(drawboardCanvas);
 
     var curColor = $('#selectColor option:selected').val();
@@ -7,45 +7,53 @@ $(function() {
 
     if(drawboardCanvas) {
         var isDown = false;
-        var ctx = drawboardCanvas.getContext("2d");
+        var ctx = drawboardCanvas.getContext('2d');
         var canvasX, canvasY;
         //'pencil' details
         ctx.lineWidth = 40.0;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.strokeStyle = curColor;
-            
+        var lastX = lastY = 0
+
         $(drawboardCanvas)
-            .bind( "touchstart mousedown", function(e) {
+            .on('touchstart mousedown', function(e) {
                 isDown = true;
                 ctx.beginPath();
-                canvasX = e.pageX - drawboardCanvas.offsetLeft;
-                canvasY = e.pageY - drawboardCanvas.offsetTop;
+                var pos = getTouchPos(e)
+                canvasX = pos.x - drawboardCanvas.offsetLeft;
+                canvasY = pos.y - drawboardCanvas.offsetTop;
                 ctx.moveTo(canvasX, canvasY);
-                ctx.lineTo(canvasX, canvasY);
+                ctx.lineTo(canvasX, canvasY+1);  // +1 required for iOS-Safari
+                lastX = canvasX;
+                lastY = canvasY;
                 ctx.stroke();
             });
         $(drawboardCanvas)
-            .bind( "touchmove mousemove", function(e) {
+            .on('touchmove mousemove', function(e) {
                 if(isDown != false) {
-                    canvasX = e.pageX - drawboardCanvas.offsetLeft;
-                    canvasY = e.pageY - drawboardCanvas.offsetTop;
-                    ctx.lineTo(canvasX, canvasY);
+                    ctx.beginPath();
+                    var pos = getTouchPos(e)
+                    canvasX = pos.x - drawboardCanvas.offsetLeft;
+                    canvasY = pos.y - drawboardCanvas.offsetTop;
+                    ctx.moveTo(lastX, lastY)
+                    ctx.lineTo(canvasX, canvasY+1); // +1 required for iOS-Safari
+                    lastX = canvasX;
+                    lastY = canvasY;
                     ctx.stroke();
                 }
             });
         $(drawboardCanvas)
-            .bind( "touchend mouseup touchleave mouseleave", function(e) {
+            .on('touchend mouseup touchleave mouseleave', function(e) {
                 if (isDown) {
                     setButtonState(true);
                     isDown = false;
                 }
 
                 isDown = false;
-                ctx.closePath();
             });
         $(document)
-            .bind( "keyup", function(e){
+            .on('keyup', function(e){
                 if (e.keyCode == 27) { // ESC
                     clearCanvas(drawboardCanvas);
                 }
@@ -65,14 +73,14 @@ $(function() {
             }
 
             $.ajax({
-                type: "POST",
-                url: "http://localhost:64303/api/handwriting",
+                type: 'POST',
+                url: 'http://localhost:64303/api/handwriting',
                 crossDomain: true,
                 contentType: 'application/json',
                 dataType: 'json',
                 data: JSON.stringify({ 'img': scaledImg, 'label': currentChar }),
                 success: function(data, status, xhr) {
-                    if (status == "success") {
+                    if (status == 'success') {
                         restart();
                     } else {
                         console.log(status);
@@ -123,7 +131,7 @@ function getRandomChar() {
 }
 
 function clearCanvas(canvas) {
-    var ctx = canvas.getContext("2d");
+    var ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setButtonState(false);
 }
@@ -151,20 +159,26 @@ function getPixelGroupValue(imgData, x, y, width, height) {
 }
 
 function preventPageScrolling(canvas) {
-    // Prevent scrolling when touching the canvas
-    document.body.addEventListener("touchstart", function (e) {
+    // Prevent scrolling when touching the canvas on iOS-Safari
+    document.body.addEventListener('touchstart', function (e) {
       if (e.target == canvas) {
         e.preventDefault();
       }
     }, false);
-    document.body.addEventListener("touchend", function (e) {
+    document.body.addEventListener('touchend', function (e) {
       if (e.target == canvas) {
         e.preventDefault();
       }
     }, false);
-    document.body.addEventListener("touchmove", function (e) {
+    document.body.addEventListener('touchmove', function (e) {
       if (e.target == canvas) {
         e.preventDefault();
       }
     }, false);
+}
+
+function getTouchPos(e) {
+    var posX = e.pageX || e.originalEvent.touches[0].pageX;
+    var posY = e.pageY || e.originalEvent.touches[0].pageY;
+    return Object.freeze({ x: posX, y: posY });
 }
