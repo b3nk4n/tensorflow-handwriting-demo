@@ -51,19 +51,26 @@
                 </div>
             </nav>
             <div class="row">
-                <div id="board">
-                    <div class="alert alert-info infobox" role="alert">
+                <div class="col-xs-12 alert alert-info infobox" role="alert">
                         Please draw the character: <br/><span id="character">A</span>
                     </div>
+                <div id="board">
+
                     <canvas id="drawboardCanvas" width="320px" height="320px">
                             Sorry, your browser doesn't support canvas technology. Seriously, you should upgrade your browser! It's true!
                     </canvas>
-                    
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-4">
+                    <button id="clear" type="button" class="btn btn-warning btn-lg btn-block">
+                        <span class="glyphicon glyphicon-trash emph-font" aria-hidden="true" />
+                    </button>
+                </div>
+
+                <div class="col-xs-8">
                     <button id="submit" type="button" class="btn btn-success btn-lg btn-block">
                         <span class="glyphicon glyphicon-ok emph-font" aria-hidden="true" />
-                    </button>
-                    <button id="clear" type="button" class="btn btn-warning btn-sm btn-block">
-                        <span class="glyphicon glyphicon-trash" aria-hidden="true" />
                     </button>
                 </div>
             </div>

@@ -5,7 +5,7 @@ body {
 }
  
 #board {
-        margin: 16px auto;
+        margin: 4px auto;
         width: 320px;
 
         // Prevent nearby text being accidentally selected

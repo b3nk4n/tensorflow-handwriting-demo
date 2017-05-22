@@ -75,6 +75,7 @@ $(function() {
             $.ajax({
                 type: 'POST',
                 url: 'http://localhost:64303/api/handwriting',
+                //url: 'http://bsautermeister.de/handwriting-service/api/handwriting',
                 crossDomain: true,
                 contentType: 'application/json',
                 dataType: 'json',
