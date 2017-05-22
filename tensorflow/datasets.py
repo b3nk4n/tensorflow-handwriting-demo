@@ -58,17 +58,19 @@ class MnistDataset(Dataset):
     
     def train_batch(self, batch_size):
         batch_x, batch_y = self.mnist.train.next_batch(batch_size)
+        batch_x = batch_x.reshape((-1,) + self.data_shape)
         batch_y = batch_y.reshape(-1, 1)
         return batch_x, batch_y
     
     def valid(self):
         data_x, data_y = self.mnist.validation.next_batch(self.valid_size)
+        data_x = data_x.reshape((-1,) + self.data_shape)
         data_y = data_y.reshape(-1, 1)
         return data_x, data_y
     
     @property
     def data_shape(self):
-        return 28, 28
+        return 28, 28, 1
     
     @property
     def num_classes(self):
@@ -132,15 +134,19 @@ class HandwritingDataset(Dataset):
         start_idx = self.batch_idx * batch_size
         end_idx = start_idx + batch_size
         batch_x = self.trainset['data'][start_idx:end_idx]
+        batch_x = batch_x.reshape((-1,) + self.data_shape)
         batch_y = self.trainset['labels'][start_idx:end_idx]
         return batch_x, batch_y
         
     def valid(self):
-        return self.validset['data'], self.validset['labels']
+        data_x = self.validset['data']
+        data_x = data_x.reshape((-1,) + self.data_shape)
+        data_y = self.validset['lavels']
+        return data_x, data_y
     
     @property
     def data_shape(self):
-        return 32, 32
+        return 32, 32, 1
     
     @property
     def num_classes(self):

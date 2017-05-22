@@ -2,7 +2,6 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import math
 import scipy.misc
 import numpy as np
 import tensorflow as tf
@@ -33,7 +32,7 @@ class EmbeddingVisualizer(object):
         emb = np.zeros((self.num_examples, self.emb_dim), dtype=np.float32)
         for i in range(self.num_examples):  # Of course you could do mini-batches
             emb[i] = self.sess.run(self.fetch_tensor,
-                                   feed_dict={self.input_ph: self.input_data[i:i+1, :]})
+                                   feed_dict={self.input_ph: self.input_data[i:i+1, ...]})
         return emb
 
     def _write_embedding_matrix(self, log_dir):
@@ -53,9 +52,9 @@ class EmbeddingVisualizer(object):
 
         # Comment out if you don't want sprites
         embedding.sprite.image_path = os.path.join(log_dir, 'sprite.png')
-        thumbnail_size = int(math.sqrt(self.input_data.shape[-1]))  # TODO refactor: specific to image in put shape (N, h, w)
-        embedding.sprite.single_image_dim.extend([thumbnail_size,
-                                                  thumbnail_size])
+        input_shape = self.input_data.shape
+        embedding.sprite.single_image_dim.extend([input_shape[1],
+                                                  input_shape[2]])
 
         projector.visualize_embeddings(summary_writer, config)
         saver = tf.train.Saver([embedding_var])
@@ -81,7 +80,7 @@ class EmbeddingVisualizer(object):
         metadata_file.close()
 
     def _create_sprite(self, log_dir):
-        thumbnail_size = int(math.sqrt(self.input_data.shape[-1]))  # TODO refactor: specific to image in put shape (N, h, w)
-        images = self.input_data.reshape(-1, thumbnail_size, thumbnail_size).astype(np.float32)
+        input_shape = self.input_data.shape
+        images = self.input_data.reshape(-1, input_shape[1], input_shape[2]).astype(np.float32)
         sprite = utils.graphics.images_to_sprite(images)
         scipy.misc.imsave(os.path.join(log_dir, 'sprite.png'), sprite)

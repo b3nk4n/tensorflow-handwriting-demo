@@ -34,7 +34,7 @@ def main(_):
     dataset.show_info()
 
     with tf.name_scope('placeholders'):
-        x_ph = tf.placeholder(tf.float32, shape=[None, np.prod(dataset.data_shape)])
+        x_ph = tf.placeholder(tf.float32, shape=[None] + list(dataset.data_shape))
         y_ph = tf.placeholder(tf.int32, shape=[None, 1])
         dropout_ph = tf.placeholder(tf.float32)
         tf.add_to_collection('x_ph', x_ph)

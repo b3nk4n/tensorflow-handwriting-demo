@@ -21,11 +21,14 @@ def main(_):
 
         model_y = tf.get_collection('model_y')[0]
 
+        data_shape = x_ph.get_shape().as_list()[1:]
+
         while True:
-            dialog = utils.ui.CanvasDialog("Read Handwriting...", 28, 28,  # TODO do not use hard coded values here
+            dialog = utils.ui.CanvasDialog("Read Handwriting...", data_shape[0], data_shape[1],
                                            scale=5, num_letters=FLAGS.num_letters)
             data = dialog.show()
             writing = np.asarray(data)
+            writing = writing.reshape([-1] + data_shape)
 
             if writing.shape[0] == 0:
                 break
@@ -41,5 +44,7 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--num_letters', type=int, default=6,
                         help='The number of letters for the handwriting.')
+    PARSER.add_argument('--dataset', type=str, default='mnist',
+                        help='The dataset to use.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
