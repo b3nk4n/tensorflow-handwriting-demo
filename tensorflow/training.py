@@ -45,14 +45,26 @@ def main(_):
 
     with tf.name_scope('data_augmentation'):
 
-        def augment_data(input_data):
-            res = tf.contrib.image.rotate(input_data,
-                                          tf.random_uniform([tf.shape(input_data)[0]],
-                                                            maxval=math.pi / 180 * 5,
-                                                            minval=math.pi / 180 * -5))
-            return res
+        def augment_data(input_data, angle, shift):
+            num_images_ = tf.shape(input_data)[0]
+            # random rotate
+            processed_data = tf.contrib.image.rotate(input_data,
+                                                     tf.random_uniform([num_images_],
+                                                                       maxval=math.pi / 180 * angle,
+                                                                       minval=math.pi / 180 * -angle))
+            # random shift
+            base_row = tf.constant([1, 0, 0, 0, 1, 0, 0, 0], shape=[1, 8], dtype=tf.float32)
+            base_ = tf.tile(base_row, [num_images_, 1])
+            mask_row = tf.constant([0, 0, 1, 0, 0, 1, 0, 0], shape=[1, 8], dtype=tf.float32)
+            mask_ = tf.tile(mask_row, [num_images_, 1])
+            random_shift_ = tf.random_uniform([num_images_, 8], minval=-shift, maxval=shift, dtype=tf.float32)
+            transforms_ = base_ + random_shift_ * mask_
 
-        preprocessed = tf.cond(augment_ph, lambda: augment_data(x_ph), lambda: x_ph)
+            processed_data = tf.contrib.image.transform(images=processed_data,
+                                                        transforms=transforms_)
+            return processed_data
+
+        preprocessed = tf.cond(augment_ph, lambda: augment_data(x_ph, angle=5.0, shift=2.49), lambda: x_ph)
 
     with tf.name_scope('model'):
         model_y = emb_layer = None
