@@ -1,5 +1,7 @@
 $(function() {
     var drawboardCanvas = document.getElementById("drawboardCanvas");
+    preventPageScrolling(drawboardCanvas);
+
     var curColor = $('#selectColor option:selected').val();
     var currentChar = null;
 
@@ -146,4 +148,23 @@ function getPixelGroupValue(imgData, x, y, width, height) {
         }
     }
     return pixCounter / total;
+}
+
+function preventPageScrolling(canvas) {
+    // Prevent scrolling when touching the canvas
+    document.body.addEventListener("touchstart", function (e) {
+      if (e.target == canvas) {
+        e.preventDefault();
+      }
+    }, false);
+    document.body.addEventListener("touchend", function (e) {
+      if (e.target == canvas) {
+        e.preventDefault();
+      }
+    }, false);
+    document.body.addEventListener("touchmove", function (e) {
+      if (e.target == canvas) {
+        e.preventDefault();
+      }
+    }, false);
 }
