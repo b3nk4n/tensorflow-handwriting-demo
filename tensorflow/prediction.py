@@ -35,8 +35,11 @@ def main(_):
 
             prediction = sess.run(model_y, feed_dict={x_ph: writing, dropout_ph: 1.0})
             for i in range(prediction.shape[0]):
-                alpha_pos = np.argmax(prediction[i])
-                print(chr(ord('A') + alpha_pos), end='')
+                index_pos = np.argmax(prediction[i])
+                if data_shape[0] == 28:  # MNIST
+                    print(index_pos, end='')
+                else:  # Handwriting
+                    print(chr(ord('A') + index_pos), end='')
             print()
 
 
