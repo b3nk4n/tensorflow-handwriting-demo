@@ -4,6 +4,7 @@ $(function() {
 
     var curColor = $('#selectColor option:selected').val();
     var currentChar = null;
+    var blockUserInput = false;
 
     if(drawboardCanvas) {
         var isDown = false;
@@ -18,6 +19,9 @@ $(function() {
 
         $(drawboardCanvas)
             .on('touchstart mousedown', function(e) {
+                if (blockUserInput)
+                    return;
+
                 isDown = true;
                 ctx.beginPath();
                 var pos = getTouchPos(e)
@@ -31,6 +35,9 @@ $(function() {
             });
         $(drawboardCanvas)
             .on('touchmove mousemove', function(e) {
+                if (blockUserInput)
+                    return;
+
                 if(isDown != false) {
                     ctx.beginPath();
                     var pos = getTouchPos(e)
@@ -45,6 +52,9 @@ $(function() {
             });
         $(drawboardCanvas)
             .on('touchend mouseup touchleave mouseleave', function(e) {
+                if (blockUserInput)
+                    return;
+
                 if (isDown) {
                     setButtonState(true);
                     isDown = false;
@@ -54,12 +64,17 @@ $(function() {
             });
         $(document)
             .on('keyup', function(e){
+                if (blockUserInput)
+                    return;
+
                 if (e.keyCode == 27) { // ESC
                     clearCanvas(drawboardCanvas);
                 }
             });
         
         $('#submit').click(function(e) {
+            setButtonState(false);
+
             var imgData = ctx.getImageData(0, 0, drawboardCanvas.width, drawboardCanvas.height)
 
             var SCALE = 10;
@@ -71,6 +86,9 @@ $(function() {
                    scaledImg.push(getPixelGroupValue(imgData, x, y, SCALE, SCALE));
                 }
             }
+
+            setSubmitButtonAnimationState(true);
+            blockUserInput = true;
 
             $.ajax({
                 type: 'POST',
@@ -84,12 +102,29 @@ $(function() {
                     if (status == 'success') {
                         restart();
                     } else {
-                        console.log(status);
+                        alert('Post Failed: ' + status);
                         restart();
                     }
+
+                    // sleep time expects milliseconds
+                    function sleep (time) {
+                      return new Promise((resolve) => setTimeout(resolve, time));
+                    }
+
+                    // Usage!
+                    sleep(1000).then(() => {
+                        // Do something after the sleep!
+                        setSubmitButtonAnimationState(false);
+                        blockUserInput = false;
+                    });
+
+
                 },
                 error: function(data, status, err) {
-                    alert('Post Failed: ' + status)
+                    setSubmitButtonAnimationState(false);
+                    blockUserInput = false;
+
+                    alert('Post Error: ' + status);
                 }
             });
         });
@@ -113,7 +148,6 @@ $(function() {
         currentChar = nextChar
         $('#character').text(currentChar);
         clearCanvas(drawboardCanvas);
-        setButtonState(false);
     }
 });
 
@@ -124,6 +158,18 @@ function setButtonState(enabled) {
     } else {
         $('#submit').attr('disabled','disabled');
         $('#clear').attr('disabled','disabled');
+    }
+}
+
+function setSubmitButtonAnimationState(enabled) {
+    if (enabled) {
+        $('#submit-icon').removeClass('glyphicon-ok')
+        $('#submit-icon').addClass('glyphicon-refresh')
+        $('#submit-icon').addClass('glyphicon-animate')
+    } else {
+        $('#submit-icon').addClass('glyphicon-ok')
+        $('#submit-icon').removeClass('glyphicon-refresh')
+        $('#submit-icon').removeClass('glyphicon-animate')
     }
 }
 
