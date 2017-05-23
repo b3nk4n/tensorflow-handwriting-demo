@@ -1,11 +1,11 @@
 body {
         margin: 0; 
-        padding-top: 70px;
+        padding-top: 60px;
         //background: red;
 }
  
 #board {
-        margin: 4px auto;
+        margin: auto auto;
         width: 320px;
 
         // Prevent nearby text being accidentally selected
@@ -19,12 +19,13 @@ body {
  
 #drawboardCanvas {
         box-shadow: 0px 0px 12px 2px #999999;
-        margin: 4px 0 16px 0;
+        margin: 4px 0 8px 0;
         touch-action: none;
 }
 
 .infobox {
         text-align: center;
+        margin-bottom: 8px;
 }
 
 .infobox #character {

@@ -74,6 +74,8 @@ $(function() {
         
         $('#submit').click(function(e) {
             setButtonState(false);
+            setSubmitButtonAnimationState(true);
+            blockUserInput = true;
 
             var imgData = ctx.getImageData(0, 0, drawboardCanvas.width, drawboardCanvas.height)
 
@@ -86,9 +88,6 @@ $(function() {
                    scaledImg.push(getPixelGroupValue(imgData, x, y, SCALE, SCALE));
                 }
             }
-
-            setSubmitButtonAnimationState(true);
-            blockUserInput = true;
 
             $.ajax({
                 type: 'POST',
@@ -106,19 +105,8 @@ $(function() {
                         restart();
                     }
 
-                    // sleep time expects milliseconds
-                    function sleep (time) {
-                      return new Promise((resolve) => setTimeout(resolve, time));
-                    }
-
-                    // Usage!
-                    sleep(1000).then(() => {
-                        // Do something after the sleep!
-                        setSubmitButtonAnimationState(false);
-                        blockUserInput = false;
-                    });
-
-
+                    setSubmitButtonAnimationState(false);
+                    blockUserInput = false;
                 },
                 error: function(data, status, err) {
                     setSubmitButtonAnimationState(false);
