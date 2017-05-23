@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 
 import tensorflow as tf
 from tensorflow.core.protobuf import saver_pb2
-import tensorflow.contrib.image
 
 import utils.ui
 import utils.tensor
@@ -19,6 +18,8 @@ import models
 import datasets
 
 FLAGS = None
+# disable TensorFlow C++ warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 def main(_):
@@ -26,9 +27,9 @@ def main(_):
     if FLAGS.dataset == 'mnist':
         dataset = datasets.MnistDataset()
     elif FLAGS.dataset == 'hw-local':
-        dataset = datasets.HandwritingDataset('http://localhost:3000')
+        dataset = datasets.HandwritingDataset('http://localhost:64303')
     elif FLAGS.dataset == 'hw-production':
-        dataset = datasets.HandwritingDataset('http://bsautermeister.de/tensorflow-handwriting-demo')
+        dataset = datasets.HandwritingDataset('http://bsautermeister.de/handwriting-service')
     else:
         raise Exception('Unknown dataset.')
 
@@ -126,7 +127,7 @@ def main(_):
         loss_n = 0
 
         for epoch in range(FLAGS.train_epochs):
-            print('\nStarting epoch {}...'.format(epoch + 1))
+            print('\nStarting epoch {} / {}...'.format(epoch + 1, FLAGS.train_epochs))
             sess.run(tf.local_variables_initializer())
 
             num_batches = int(dataset.train_size / FLAGS.batch_size)
@@ -187,21 +188,23 @@ def main(_):
             embvis = utils.embedding.EmbeddingVisualizer(sess, valid_x, valid_y, x_ph, emb_layer)
             embvis.write(log_dir, alphabetical=FLAGS.dataset != 'mnist')
 
+        print('Showing plot...')
         ax[0].plot(train_losses['step'], train_losses['value'], label='Train loss')
         ax[0].plot(valid_losses['step'], valid_losses['value'], label='Valid loss')
         ax[0].legend(loc='upper right')
         ax[1].plot(valid_accuracy['step'], valid_accuracy['value'], label='Valid accuracy')
         ax[1].legend(loc='lower right')
         plt.show()
+        print('DONE')
 
 
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--batch_size', type=int, default=64,
+    PARSER.add_argument('--batch_size', type=int, default=64,  # large batch size (>>100) gives much better results
                         help='The batch size.')
-    PARSER.add_argument('--learning_rate', type=float, default=0.00025,
+    PARSER.add_argument('--learning_rate', type=float, default=0.001,
                         help='The initial learning rate.')
-    PARSER.add_argument('--train_epochs', type=int, default=50,
+    PARSER.add_argument('--train_epochs', type=int, default=5,
                         help='The number of training epochs.')
     PARSER.add_argument('--dropout', type=float, default=0.5,
                         help='The keep probability of the dropout layer.')

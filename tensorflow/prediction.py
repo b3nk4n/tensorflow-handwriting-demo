@@ -1,6 +1,8 @@
 """ Restores a trained model and predicts handwritings. """
 from __future__ import absolute_import, division, print_function
 
+import os
+
 import sys
 import argparse
 
@@ -14,6 +16,9 @@ import tensorflow.contrib.image
 import utils.ui
 
 FLAGS = None
+# disable TensorFlow C++ warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 
 
 def main(_):
@@ -51,7 +56,5 @@ if __name__ == "__main__":
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('--num_letters', type=int, default=6,
                         help='The number of letters for the handwriting.')
-    PARSER.add_argument('--dataset', type=str, default='mnist',
-                        help='The dataset to use.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
