@@ -35,6 +35,9 @@ def main(_):
 
     dataset.show_info()
 
+    if FLAGS.dataset_check:
+        exit()
+
     with tf.name_scope('placeholders'):
         x_ph = tf.placeholder(tf.float32, shape=[None] + list(dataset.data_shape))
         y_ph = tf.placeholder(tf.int32, shape=[None, 1])
@@ -220,5 +223,7 @@ if __name__ == '__main__':
                         help='The dataset to use.')
     PARSER.add_argument('--augmentation', type=bool, default=False,
                         help='Whether data augmentation (rotate/shift) is used or not.')
+    PARSER.add_argument('--dataset_check', type=bool, default=False,
+                        help='Whether the dataset should be checked only.')
     FLAGS, UNPARSED = PARSER.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
