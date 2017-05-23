@@ -3,9 +3,9 @@ from __future__ import absolute_import, division, print_function
 
 from abc import ABCMeta, abstractmethod, abstractproperty 
 
+import os
 import json
 import urllib
-import urlparse
 import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -89,7 +89,7 @@ class HandwritingDataset(Dataset):
     
     def __init__(self, base_url):
         self.batch_idx = 0
-        self._download_data(urlparse.urljoin(base_url, '/api/handwriting'))
+        self._download_data(base_url + '/api/handwriting')
         super(HandwritingDataset, self).__init__('Handwriting Dataset')
         
     def _download_data(self, url):
@@ -141,7 +141,7 @@ class HandwritingDataset(Dataset):
     def valid(self):
         data_x = self.validset['data']
         data_x = data_x.reshape((-1,) + self.data_shape)
-        data_y = self.validset['lavels']
+        data_y = self.validset['labels']
         return data_x, data_y
     
     @property
